@@ -27,6 +27,13 @@ import {
   timestampName,
   type ExportFormat,
 } from '@/lib/export'
+
+/** Base UI Select.Value needs an explicit items map or it shows the raw value */
+const FORMAT_ITEMS = [
+  { value: 'jpeg', label: 'JPEG' },
+  { value: 'png', label: 'PNG' },
+  { value: 'webp', label: 'WebP' },
+]
 import { loadImageFile, releaseImage, type LoadedImage } from '@/lib/images'
 import { useUnloadGuard } from '@/lib/useUnloadGuard'
 import { usePasteImages } from '@/lib/usePasteImages'
@@ -215,7 +222,11 @@ export default function SplitPage() {
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t('export.format')}</Label>
-            <Select value={format} onValueChange={(v) => v && setFormat(v as ExportFormat)}>
+            <Select
+              value={format}
+              onValueChange={(v) => v && setFormat(v as ExportFormat)}
+              items={FORMAT_ITEMS}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>

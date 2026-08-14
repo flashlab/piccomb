@@ -36,11 +36,29 @@ export default function ExportPanel({ settings, onChange, onExport, exporting, e
   const { t } = useTranslation()
   const set = (patch: Partial<ExportSettings>) => onChange({ ...settings, ...patch })
 
+  /** Base UI Select.Value needs explicit items or it shows raw values */
+  const sizeItems = [
+    ...RATIO_PRESETS.map((p) => ({
+      value: p.id,
+      label: `${t(`sizes.${p.labelKey}`)} · ${p.w}×${p.h}`,
+    })),
+    ...PRINT_PRESETS.map((p) => ({
+      value: p.id,
+      label: `${t(`sizes.${p.labelKey}`)} · ${p.w}×${p.h}`,
+    })),
+    { value: 'custom', label: t('collage.customSize') },
+  ]
+  const formatItems = [
+    { value: 'png', label: 'PNG' },
+    { value: 'jpeg', label: 'JPEG' },
+    { value: 'webp', label: 'WebP' },
+  ]
+
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">{t('collage.size')}</Label>
-        <Select value={settings.presetId} onValueChange={(v) => v && set({ presetId: v })}>
+        <Select value={settings.presetId} onValueChange={(v) => v && set({ presetId: v })} items={sizeItems}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -90,7 +108,11 @@ export default function ExportPanel({ settings, onChange, onExport, exporting, e
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{t('export.format')}</Label>
-          <Select value={settings.format} onValueChange={(v) => v && set({ format: v as ExportFormat })}>
+          <Select
+            value={settings.format}
+            onValueChange={(v) => v && set({ format: v as ExportFormat })}
+            items={formatItems}
+          >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>

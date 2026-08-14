@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Cropper from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
 import {
+  Copy,
   Download,
   FlipHorizontal2,
   FlipVertical2,
@@ -52,6 +53,13 @@ const RATIOS: { id: string; value: number | undefined }[] = [
   { id: '9:16', value: 9 / 16 },
   { id: '3:2', value: 3 / 2 },
   { id: '2:3', value: 2 / 3 },
+]
+
+/** Base UI Select.Value needs an explicit items map or it shows the raw value */
+const FORMAT_ITEMS = [
+  { value: 'jpeg', label: 'JPEG' },
+  { value: 'png', label: 'PNG' },
+  { value: 'webp', label: 'WebP' },
 ]
 
 export default function CropPage() {
@@ -158,8 +166,14 @@ export default function CropPage() {
     const h = Math.max(1, Math.round(Number(draftH) || 1))
     setDraftW(String(w))
     setDraftH(String(h))
-    const aspectUnchanged = ratioId === 'custom' && customW === w && customH === h
+    // compare RATIOS, not raw values: with the lock engaged, edits like
+    // 3:2 → 6:4 change the ints but not the aspect — easy-crop sees the same
+    // aspect prop and never re-fires onCropComplete, so a pending size-solve
+    // would dangle forever. Unchanged aspect ⇒ solve zoom immediately.
+    const aspectUnchanged =
+      ratioId === 'custom' && Math.abs(customW / customH - w / h) < 1e-9
     if (customMode === 'size') {
+      pendingSize.current = null
       if (aspectUnchanged && areaPixels && areaPixels.width > 0) {
         setZoom((z) => clamp(z * (areaPixels.width / w), 1, 5))
       } else {
@@ -229,6 +243,24 @@ export default function CropPage() {
       const blob = await canvasToBlob(flattenForFormat(canvas, format), format, quality)
       downloadBlob(blob, timestampName('crop', format))
       toast.success(t('export.success'))
+    } catch (err) {
+      console.error(err)
+      toast.error(t('export.failed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** clipboard copy is always PNG — the only ClipboardItem-safe format */
+  const doCopy = async () => {
+    if (!working || !areaPixels) return
+    setBusy(true)
+    try {
+      const radius = cornerRadiusPx(radiusPct, { w: areaPixels.width, h: areaPixels.height })
+      const canvas = cropWithRotation(working.el, areaPixels, rotation, radius)
+      const blob = await canvasToBlob(canvas, 'png')
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      toast.success(t('collage.copied'))
     } catch (err) {
       console.error(err)
       toast.error(t('export.failed'))
@@ -330,6 +362,10 @@ export default function CropPage() {
             <Select
               value={customMode}
               onValueChange={(v) => v && setCustomMode(v as 'ratio' | 'size')}
+              items={[
+                { value: 'ratio', label: t('crop.customRatio') },
+                { value: 'size', label: t('crop.customSizePx') },
+              ]}
             >
               <SelectTrigger className="h-8 w-32 text-xs">
                 <SelectValue />
@@ -452,7 +488,11 @@ export default function CropPage() {
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t('export.format')}</Label>
-            <Select value={format} onValueChange={(v) => v && setFormat(v as ExportFormat)}>
+            <Select
+              value={format}
+              onValueChange={(v) => v && setFormat(v as ExportFormat)}
+              items={FORMAT_ITEMS}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -482,6 +522,14 @@ export default function CropPage() {
 
         <Button className="w-full" size="lg" onClick={() => void doExport()} disabled={busy || !areaPixels}>
           <Download className="size-4" /> {t('crop.export')}
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => void doCopy()}
+          disabled={busy || !areaPixels}
+        >
+          <Copy className="size-4" /> {t('collage.copyClipboard')}
         </Button>
         {areaPixels && (
           <p className="text-center text-xs text-muted-foreground">
