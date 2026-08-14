@@ -1,0 +1,50 @@
+{
+ "4R": {
+  "width": 1200,
+  "height": 1800,
+  "label": null,
+  "ratio": null
+ },
+ "4R-h": {
+  "width": 1800,
+  "height": 1200,
+  "label": "6寸横 (15×10cm)",
+  "ratio": null
+ },
+ "5R": {
+  "width": 1500,
+  "height": 2100,
+  "label": null,
+  "ratio": null
+ },
+ "5R-h": {
+  "width": 2100,
+  "height": 1500,
+  "label": null,
+  "ratio": "7/5"
+ },
+ "8R": {
+  "width": 2400,
+  "height": 3000.0,
+  "label": null,
+  "ratio": null
+ },
+ "8R-h": {
+  "width": 3000.0,
+  "height": 2400,
+  "label": "8寸横 (25×20cm)",
+  "ratio": null
+ },
+ "A4": {
+  "width": 2480,
+  "height": 3508,
+  "label": null,
+  "ratio": null
+ },
+ "A4-h": {
+  "width": 3508,
+  "height": 2480,
+  "label": null,
+  "ratio": null
+ }
+}
