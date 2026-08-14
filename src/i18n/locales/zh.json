@@ -56,13 +56,18 @@
     "cols": "列数",
     "preset33": "九宫格",
     "tiles": "{{count}} 个分块",
-    "hint": "按行×列等分图片，可单块下载或打包 ZIP"
+    "hint": "按行×列等分图片，可单块下载或打包 ZIP",
+    "tileSize": "单块尺寸",
+    "sourceSize": "原图"
   },
   "crop": {
     "title": "图片裁剪",
     "ratio": "比例",
     "free": "自由",
-    "rotate": "旋转 90°",
+    "rotate": "旋转",
+    "apply": "应用",
+    "customRatio": "自定义比例",
+    "customSizePx": "自定义尺寸(px)",
     "flipH": "水平翻转",
     "flipV": "垂直翻转",
     "zoom": "缩放",

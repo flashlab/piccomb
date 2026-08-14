@@ -56,13 +56,18 @@
     "cols": "Columns",
     "preset33": "3×3 grid",
     "tiles": "{{count}} tiles",
-    "hint": "Split into rows × columns; download tiles individually or as a ZIP"
+    "hint": "Split into rows × columns; download tiles individually or as a ZIP",
+    "tileSize": "Tile size",
+    "sourceSize": "Source"
   },
   "crop": {
     "title": "Crop Image",
     "ratio": "Aspect ratio",
     "free": "Free",
-    "rotate": "Rotate 90°",
+    "rotate": "Rotation",
+    "apply": "Apply",
+    "customRatio": "Custom ratio",
+    "customSizePx": "Custom size (px)",
     "flipH": "Flip horizontal",
     "flipV": "Flip vertical",
     "zoom": "Zoom",

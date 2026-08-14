@@ -6,8 +6,6 @@ import {
   Download,
   FlipHorizontal2,
   FlipVertical2,
-  RotateCcw,
-  RotateCw,
   Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -38,6 +36,7 @@ import {
 } from '@/lib/export'
 import { flipImage, loadImageFile, releaseImage, type LoadedImage } from '@/lib/images'
 import { ID_PHOTO_PRESETS } from '@/lib/sizePresets'
+import { angleToSlider, clamp, sliderToAngle } from '@/lib/geometry'
 import { useUnloadGuard } from '@/lib/useUnloadGuard'
 import { usePasteImages } from '@/lib/usePasteImages'
 import { cn } from '@/lib/utils'
@@ -65,6 +64,10 @@ export default function CropPage() {
   const [ratioId, setRatioId] = useState('free')
   const [customW, setCustomW] = useState(3)
   const [customH, setCustomH] = useState(2)
+  const [customMode, setCustomMode] = useState<'ratio' | 'size'>('ratio')
+  const [draftW, setDraftW] = useState('3')
+  const [draftH, setDraftH] = useState('2')
+  const pendingSize = useRef<{ w: number; h: number } | null>(null)
   const [areaPixels, setAreaPixels] = useState<Area | null>(null)
   const [radiusPct, setRadiusPct] = useState(0)
   const [format, setFormat] = useState<ExportFormat>('jpeg')
@@ -140,7 +143,36 @@ export default function CropPage() {
     return RATIOS.find((r) => r.id === ratioId)?.value
   }, [ratioId, customW, customH])
 
-  const rotate = (delta: number) => setRotation((r) => (((r + delta) % 360) + 360) % 360)
+  /**
+   * Commit the custom inputs (Enter / blur / apply button). Ratio mode just
+   * re-targets the aspect; size mode additionally solves the zoom that makes
+   * the crop area land on the requested pixel width — exact in one step
+   * because cropped pixels scale ∝ 1/zoom.
+   */
+  const applyCustom = () => {
+    const w = Math.max(1, Math.round(Number(draftW) || 1))
+    const h = Math.max(1, Math.round(Number(draftH) || 1))
+    const aspectUnchanged = ratioId === 'custom' && customW === w && customH === h
+    if (customMode === 'size') {
+      if (aspectUnchanged && areaPixels && areaPixels.width > 0) {
+        setZoom((z) => clamp(z * (areaPixels.width / w), 1, 5))
+      } else {
+        // consumed once easy-crop reports the area for the new aspect
+        pendingSize.current = { w, h }
+      }
+    }
+    setCustomW(w)
+    setCustomH(h)
+    setRatioId('custom')
+  }
+
+  // one-shot zoom correction once the area for a freshly applied size arrives
+  useEffect(() => {
+    if (!pendingSize.current || !areaPixels || areaPixels.width <= 0) return
+    const { w } = pendingSize.current
+    pendingSize.current = null
+    setZoom((z) => clamp(z * (areaPixels.width / w), 1, 5))
+  }, [areaPixels])
 
   /** exact export result, re-rendered into the small preview canvas */
   useEffect(() => {
@@ -196,8 +228,10 @@ export default function CropPage() {
             />
           )}
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          {t('crop.title')} · {rotation}°
+        <p className="mt-3 text-xs tabular-nums text-muted-foreground">
+          {areaPixels
+            ? `X ${Math.round(areaPixels.x)} · Y ${Math.round(areaPixels.y)} · ${Math.round(areaPixels.width)}×${Math.round(areaPixels.height)}px · ${rotation}°`
+            : t('crop.title')}
         </p>
       </div>
 
@@ -212,12 +246,6 @@ export default function CropPage() {
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{t('crop.rotateFlip')}</Label>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => rotate(-45)}>
-              <RotateCcw className="size-3.5" /> 45°
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => rotate(45)}>
-              <RotateCw className="size-3.5" /> 45°
-            </Button>
             <Toggle pressed={flipH} onPressedChange={setFlipH} aria-label={t('crop.flipH')}>
               <FlipHorizontal2 className="size-3.5" />
             </Toggle>
@@ -225,6 +253,23 @@ export default function CropPage() {
               <FlipVertical2 className="size-3.5" />
             </Toggle>
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">
+            {t('crop.rotate')} · {rotation}°
+          </Label>
+          <Slider
+            value={[Math.round(angleToSlider(rotation) * 1000)]}
+            min={0}
+            max={1000}
+            step={1}
+            aria-label={t('crop.rotate')}
+            onValueChange={(v) => {
+              const s = typeof v === 'number' ? v : (v[0] ?? 0)
+              setRotation(sliderToAngle(s / 1000))
+            }}
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -243,39 +288,48 @@ export default function CropPage() {
             ))}
           </div>
           <div className="flex items-center gap-2 pt-1">
-            <Button
-              variant={ratioId === 'custom' ? 'default' : 'outline'}
-              size="sm"
-              className="text-xs"
-              onClick={() => setRatioId('custom')}
+            <Select
+              value={customMode}
+              onValueChange={(v) => v && setCustomMode(v as 'ratio' | 'size')}
             >
-              {t('collage.customSize')}
-            </Button>
+              <SelectTrigger className="h-8 w-32 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ratio">{t('crop.customRatio')}</SelectItem>
+                <SelectItem value="size">{t('crop.customSizePx')}</SelectItem>
+              </SelectContent>
+            </Select>
             <Input
               type="number"
               min={1}
-              value={customW}
+              value={draftW}
               aria-label={t('crop.ratioW')}
               autoComplete="off"
-              onChange={(e) => {
-                setCustomW(Math.max(1, Number(e.target.value) || 1))
-                setRatioId('custom')
+              onChange={(e) => setDraftW(e.target.value)}
+              onBlur={applyCustom}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applyCustom()
               }}
               className="h-8 w-16"
             />
-            <span className="text-muted-foreground">:</span>
+            <span className="text-muted-foreground">{customMode === 'ratio' ? ':' : '×'}</span>
             <Input
               type="number"
               min={1}
-              value={customH}
+              value={draftH}
               aria-label={t('crop.ratioH')}
               autoComplete="off"
-              onChange={(e) => {
-                setCustomH(Math.max(1, Number(e.target.value) || 1))
-                setRatioId('custom')
+              onChange={(e) => setDraftH(e.target.value)}
+              onBlur={applyCustom}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applyCustom()
               }}
               className="h-8 w-16"
             />
+            <Button variant="outline" size="sm" className="text-xs" onClick={applyCustom}>
+              {t('crop.apply')}
+            </Button>
           </div>
         </div>
 

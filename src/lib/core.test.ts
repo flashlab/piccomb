@@ -8,7 +8,7 @@ import {
   templatesForCount,
   uniformFractions,
 } from '@/lib/templates'
-import { clampPan, coverScale, displayedSize, sourceRect } from '@/lib/geometry'
+import { clampPan, coverScale, displayedSize, sourceRect, sliderToAngle, angleToSlider } from '@/lib/geometry'
 import { timestampName, cornerRadiusPx } from '@/lib/export'
 
 describe('template data', () => {
@@ -141,5 +141,34 @@ describe('cornerRadiusPx', () => {
   it('clamps out-of-range input', () => {
     expect(cornerRadiusPx(0, { w: 800, h: 800 })).toBe(0)
     expect(cornerRadiusPx(999, { w: 800, h: 800 })).toBeCloseTo(400)
+  })
+})
+
+describe('non-linear rotation slider', () => {
+  it('maps endpoints and center exactly', () => {
+    expect(sliderToAngle(0)).toBe(-90)
+    expect(sliderToAngle(1)).toBe(90)
+    expect(sliderToAngle(0.5)).toBe(0)
+  })
+  it('is monotonic increasing', () => {
+    let prev = -Infinity
+    for (let i = 0; i <= 200; i++) {
+      const v = sliderToAngle(i / 200)
+      expect(v).toBeGreaterThanOrEqual(prev)
+      prev = v
+    }
+  })
+  it('has finer granularity near center and ends than mid-quarters', () => {
+    const d = (a: number, b: number) => Math.abs(sliderToAngle(b) - sliderToAngle(a))
+    const nearCenter = d(0.5, 0.51)
+    const nearEnd = d(0.99, 1)
+    const midQuarter = d(0.25, 0.26)
+    expect(nearCenter).toBeLessThan(midQuarter)
+    expect(nearEnd).toBeLessThan(midQuarter)
+  })
+  it('inverse round-trips (unsnapped angles)', () => {
+    for (const deg of [-73.4, -20.5, 12.3, 66.6]) {
+      expect(sliderToAngle(angleToSlider(deg))).toBeCloseTo(deg, 0)
+    }
   })
 })

@@ -56,13 +56,18 @@
     "cols": "列数",
     "preset33": "3×3 グリッド",
     "tiles": "{{count}} ブロック",
-    "hint": "行×列で等分割し、個別またはZIPでダウンロード"
+    "hint": "行×列で等分割し、個別またはZIPでダウンロード",
+    "tileSize": "ブロックサイズ",
+    "sourceSize": "元画像"
   },
   "crop": {
     "title": "トリミング",
     "ratio": "比率",
     "free": "自由",
-    "rotate": "90°回転",
+    "rotate": "回転",
+    "apply": "適用",
+    "customRatio": "カスタム比率",
+    "customSizePx": "サイズ指定(px)",
     "flipH": "左右反転",
     "flipV": "上下反転",
     "zoom": "ズーム",

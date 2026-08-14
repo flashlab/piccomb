@@ -137,7 +137,9 @@ export default function SplitPage() {
             ))}
           </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">{t('split.hint')}</p>
+        <p className="mt-3 text-xs tabular-nums text-muted-foreground">
+          {t('split.tileSize')} · {Math.floor(img.w / cols)}×{Math.floor(img.h / rows)}px
+        </p>
       </div>
 
       <aside className="w-full shrink-0 space-y-4 lg:w-80">
@@ -257,6 +259,10 @@ export default function SplitPage() {
             )
           })}
         </div>
+
+        <p className="pt-2 text-right text-xs tabular-nums text-muted-foreground">
+          {t('split.sourceSize')} · {img.w}×{img.h}px
+        </p>
       </aside>
     </div>
   )

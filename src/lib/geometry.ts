@@ -24,6 +24,42 @@ export function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v))
 }
 
+/* ---------- non-linear rotation slider mapping ---------- */
+
+const ROT_CURVE_A = 0.8
+const SNAPS = [-90, -45, 0, 45, 90]
+const SNAP_WINDOW = 1.2
+
+const rotCurve = (s: number): number => s - (ROT_CURVE_A * Math.sin(4 * Math.PI * s)) / (4 * Math.PI)
+
+/**
+ * Slider position s∈[0,1] → angle∈[-90,90]. Cosine-modulated: fine steps
+ * near the center and both ends, fast in between; snaps to 0/±45/±90.
+ */
+export function sliderToAngle(s: number): number {
+  let deg = -90 + 180 * rotCurve(clamp(s, 0, 1))
+  for (const snap of SNAPS) {
+    if (Math.abs(deg - snap) < SNAP_WINDOW) {
+      deg = snap
+      break
+    }
+  }
+  return Math.round(deg * 10) / 10
+}
+
+/** inverse of sliderToAngle (bisection; the curve is strictly monotonic) */
+export function angleToSlider(deg: number): number {
+  const target = clamp((deg + 90) / 180, 0, 1)
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2
+    if (rotCurve(mid) < target) lo = mid
+    else hi = mid
+  }
+  return (lo + hi) / 2
+}
+
 /** effective bitmap dims after rotation (90/270 swap w/h) */
 export function rotatedSize(img: Size, rotation: number): Size {
   return rotation % 180 === 0 ? img : { w: img.h, h: img.w }

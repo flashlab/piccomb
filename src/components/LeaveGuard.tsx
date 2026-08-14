@@ -18,7 +18,12 @@ import {
  */
 export default function LeaveGuard({ active }: { active: boolean }) {
   const { t } = useTranslation()
-  const blocker = useBlocker(active)
+  // only intercept navigations to a *different* route — clicking the current
+  // tool's nav item must not prompt
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      active && currentLocation.pathname !== nextLocation.pathname,
+  )
   const open = blocker.state === 'blocked'
 
   return (
