@@ -1,5 +1,5 @@
 import type { ImageTransform, Size } from '@/lib/geometry'
-import { cellRect, sourceRect, type PixelRect } from '@/lib/geometry'
+import { IDENTITY_TRANSFORM, cellRect, sourceRect, type PixelRect } from '@/lib/geometry'
 import { placeCells, type Template } from '@/lib/templates'
 import type { CollageStyle } from '@/lib/style'
 
@@ -53,6 +53,31 @@ export interface CollageRenderInput {
   out: Size
 }
 
+/** bitmap rotated by quarter-turns, for export-time drawImage */
+function rotatedSource(
+  img: HTMLImageElement,
+  rotation: number,
+): HTMLImageElement | HTMLCanvasElement {
+  const rot = ((rotation % 360) + 360) % 360
+  if (rot === 0) return img
+  const swap = rot % 180 !== 0
+  const c = document.createElement('canvas')
+  c.width = swap ? img.naturalHeight : img.naturalWidth
+  c.height = swap ? img.naturalWidth : img.naturalHeight
+  const ctx = c.getContext('2d')
+  if (!ctx) throw new Error('no 2d context')
+  ctx.translate(c.width / 2, c.height / 2)
+  ctx.rotate((rot * Math.PI) / 180)
+  ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2)
+  return c
+}
+
+function sourceDims(s: HTMLImageElement | HTMLCanvasElement): { w: number; h: number } {
+  return s instanceof HTMLImageElement
+    ? { w: s.naturalWidth, h: s.naturalHeight }
+    : { w: s.width, h: s.height }
+}
+
 /**
  * Render the collage onto a fresh canvas at full output resolution.
  * Mirrors the DOM editing view: same fractions, same transforms, same style.
@@ -80,15 +105,16 @@ export function renderCollage(input: CollageRenderInput): HTMLCanvasElement {
     const img = images[i]
     if (!img) return
     const rect = cellRect(pl, rowFracs, colFracs, box, style.spacing)
-    const t = transforms[i] ?? { scale: 1, x: 0, y: 0 }
-    const src = sourceRect(t, { w: img.naturalWidth, h: img.naturalHeight }, rect)
+    const t = transforms[i] ?? IDENTITY_TRANSFORM
+    const source = rotatedSource(img, t.rotation)
+    const src = sourceRect(t, sourceDims(source), rect)
 
     ctx.save()
     ctx.beginPath()
     if (style.radius > 0) ctx.roundRect(rect.x, rect.y, rect.w, rect.h, style.radius)
     else ctx.rect(rect.x, rect.y, rect.w, rect.h)
     ctx.clip()
-    ctx.drawImage(img, src.sx, src.sy, src.sw, src.sh, rect.x, rect.y, rect.w, rect.h)
+    ctx.drawImage(source, src.sx, src.sy, src.sw, src.sh, rect.x, rect.y, rect.w, rect.h)
     ctx.restore()
   })
 

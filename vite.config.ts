@@ -1,11 +1,13 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { readFileSync } from 'fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const { version } = JSON.parse(readFileSync(path.join(__dirname, 'package.json'), 'utf-8'))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -38,6 +40,9 @@ export default defineConfig({
       },
     }),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },

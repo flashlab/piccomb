@@ -39,6 +39,10 @@ export default function CollagePage() {
   const pendingCell = useRef<number | null>(null)
   const trash = useRef<(LoadedImage | null)[]>([])
   useUnloadGuard(imageCountGuard(cells))
+  const [isCoarse] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches,
+  )
+  const hintKey = isCoarse ? 'collage.hintTouch' : 'collage.hint'
 
   const imageCount = cells.filter(Boolean).length
   const template = useMemo(
@@ -161,6 +165,7 @@ export default function CollagePage() {
       scale: t.scale,
       x: t.x / K,
       y: t.y / K,
+      rotation: t.rotation,
     }))
     return renderCollage({
       images: cells.map((c) => c?.el ?? null),
@@ -235,7 +240,7 @@ export default function CollagePage() {
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <ImagePlus className="size-10 text-muted-foreground" />
             <p className="font-medium">{t('common.uploadHint')}</p>
-            <p className="text-sm text-muted-foreground">{t('collage.hint')}</p>
+            <p className="text-sm text-muted-foreground">{t(hintKey)}</p>
           </CardContent>
         </Card>
         <input
@@ -288,7 +293,7 @@ export default function CollagePage() {
             if (Math.abs(viewScale.current - k) > 1e-4) viewScale.current = k
           }}
         />
-        <p className="mt-3 text-xs text-muted-foreground">{t('collage.hint')}</p>
+        <p className="mt-3 text-xs text-muted-foreground">{t(hintKey)}</p>
       </div>
 
       <aside className="w-full shrink-0 space-y-4 lg:w-80">

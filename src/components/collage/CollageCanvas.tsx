@@ -65,6 +65,183 @@ export default function CollageCanvas(props: Props) {
     startFracs: number[]
   } | null>(null)
 
+  /* ---------- mobile gesture state (coarse pointers) ---------- */
+  const isCoarse = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches,
+  ).current
+  const [pendingSwap, setPendingSwap] = useState<number | null>(null)
+  const pointers = useRef(new Map<number, { x: number; y: number; cell: number }>())
+  const mMode = useRef<'idle' | 'wait' | 'pan' | 'pinch'>('idle')
+  const mStart = useRef<{ x: number; y: number; cell: number; t0: ImageTransform } | null>(null)
+  const pinch = useRef<{
+    cell: number
+    dist0: number
+    cx0: number
+    cy0: number
+    t0: ImageTransform
+  } | null>(null)
+  const longPressTimer = useRef(0)
+  const tapTimer = useRef(0)
+  const lastTap = useRef<{ cell: number; time: number } | null>(null)
+  const dividerRaf = useRef(0)
+  const dividerPos = useRef(0)
+
+  const rotateCell = (i: number) => {
+    const img = images[i]
+    if (!img) return
+    const cur = transforms[i] ?? IDENTITY_TRANSFORM
+    onTransformChange(
+      i,
+      clampPan({ ...cur, rotation: (cur.rotation + 90) % 360 }, { w: img.w, h: img.h }, rects[i]),
+    )
+  }
+
+  /** two-stage tap swap (mobile) */
+  const handleTap = (cell: number) => {
+    onSelect(cell)
+    if (!images[cell]) {
+      onEmptyCellClick(cell)
+      return
+    }
+    if (pendingSwap === null) setPendingSwap(cell)
+    else if (pendingSwap === cell) setPendingSwap(null)
+    else {
+      onSwap(pendingSwap, cell)
+      setPendingSwap(null)
+    }
+  }
+
+  const clearMobileTimers = () => {
+    window.clearTimeout(longPressTimer.current)
+    window.clearTimeout(tapTimer.current)
+  }
+
+  /* ---------- mobile pointer handlers ---------- */
+  const mobileDown = (i: number, e: React.PointerEvent) => {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY, cell: i })
+    if (pointers.current.size === 2) {
+      // second finger → pinch on the first finger's cell
+      clearMobileTimers()
+      mMode.current = 'idle'
+      const [p1, p2] = [...pointers.current.values()]
+      const target = p1.cell
+      if (images[target]) {
+        pinch.current = {
+          cell: target,
+          dist0: Math.hypot(p2.x - p1.x, p2.y - p1.y),
+          cx0: (p1.x + p2.x) / 2,
+          cy0: (p1.y + p2.y) / 2,
+          t0: transforms[target] ?? IDENTITY_TRANSFORM,
+        }
+        mMode.current = 'pinch'
+        onSelect(target)
+      }
+      return
+    }
+    if (!images[i]) {
+      // empty cell tap uploads immediately (no double-tap ambiguity)
+      return
+    }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    mStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      cell: i,
+      t0: transforms[i] ?? IDENTITY_TRANSFORM,
+    }
+    mMode.current = 'wait'
+    longPressTimer.current = window.setTimeout(() => {
+      if (mMode.current === 'wait') {
+        mMode.current = 'pan'
+        onSelect(i)
+        setPendingSwap(null)
+      }
+    }, 400)
+  }
+
+  const mobileMove = (e: React.PointerEvent) => {
+    const pt = pointers.current.get(e.pointerId)
+    if (!pt) return
+    pointers.current.set(e.pointerId, { ...pt, x: e.clientX, y: e.clientY })
+
+    if (mMode.current === 'pinch' && pinch.current && pointers.current.size >= 2) {
+      const [p1, p2] = [...pointers.current.values()]
+      const p = pinch.current
+      const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y)
+      const midX = (p1.x + p2.x) / 2
+      const midY = (p1.y + p2.y) / 2
+      const img = images[p.cell]
+      if (!img || p.dist0 === 0) return
+      onTransformChange(
+        p.cell,
+        clampPan(
+          {
+            ...p.t0,
+            scale: p.t0.scale * (dist / p.dist0),
+            x: p.t0.x + (midX - p.cx0),
+            y: p.t0.y + (midY - p.cy0),
+          },
+          { w: img.w, h: img.h },
+          rects[p.cell],
+        ),
+      )
+      return
+    }
+
+    if (mMode.current === 'wait' && mStart.current) {
+      if (Math.hypot(e.clientX - mStart.current.x, e.clientY - mStart.current.y) > 8) {
+        window.clearTimeout(longPressTimer.current)
+        mMode.current = 'idle'
+      }
+      return
+    }
+
+    if (mMode.current === 'pan' && mStart.current) {
+      const { cell, t0 } = mStart.current
+      const img = images[cell]
+      if (!img) return
+      onTransformChange(
+        cell,
+        clampPan(
+          { ...t0, x: t0.x + e.clientX - mStart.current.x, y: t0.y + e.clientY - mStart.current.y },
+          { w: img.w, h: img.h },
+          rects[cell],
+        ),
+      )
+    }
+  }
+
+  const mobileUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId)
+    if (mMode.current === 'pinch') {
+      if (pointers.current.size < 2) {
+        pinch.current = null
+        mMode.current = 'idle'
+      }
+      return
+    }
+    window.clearTimeout(longPressTimer.current)
+    if (mMode.current === 'wait' && mStart.current) {
+      const cell = mStart.current.cell
+      const now = Date.now()
+      if (lastTap.current && lastTap.current.cell === cell && now - lastTap.current.time < 300) {
+        // double-tap → rotate; swallow the buffered first tap
+        window.clearTimeout(tapTimer.current)
+        lastTap.current = null
+        rotateCell(cell)
+      } else {
+        lastTap.current = { cell, time: now }
+        window.clearTimeout(tapTimer.current)
+        tapTimer.current = window.setTimeout(() => handleTap(cell), 260)
+      }
+    }
+    mMode.current = 'idle'
+    mStart.current = null
+  }
+
+  /** tap on empty cell (mobile) is handled by the cell's onClick */
+
+
   // measure container
   useEffect(() => {
     const el = wrapRef.current
@@ -101,6 +278,10 @@ export default function CollageCanvas(props: Props) {
   }
 
   const handlePointerDown = (i: number, e: React.PointerEvent) => {
+    if (isCoarse) {
+      mobileDown(i, e)
+      return
+    }
     if (!images[i]) return
     e.preventDefault()
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
@@ -116,6 +297,10 @@ export default function CollageCanvas(props: Props) {
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (isCoarse) {
+      mobileMove(e)
+      return
+    }
     const d = dragRef.current
     if (!d || d.pointerId !== e.pointerId) return
     const dx = e.clientX - d.startX
@@ -142,6 +327,10 @@ export default function CollageCanvas(props: Props) {
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    if (isCoarse) {
+      mobileUp(e)
+      return
+    }
     const d = dragRef.current
     dragRef.current = null
     setGhost(null)
@@ -239,13 +428,19 @@ export default function CollageCanvas(props: Props) {
   const dividerMove = (e: React.PointerEvent) => {
     const d = dividerRef.current
     if (!d || d.pointerId !== e.pointerId) return
-    const total = d.axis === 'row' ? box.h : box.w
-    if (total <= 0) return
-    const pos = d.axis === 'row' ? e.clientY : e.clientX
-    const delta = (pos - d.start) / total
-    const { dragDivider } = dividerUtils
-    if (d.axis === 'row') onRowFracs(dragDivider(d.startFracs, d.index, delta))
-    else onColFracs(dragDivider(d.startFracs, d.index, delta))
+    // rAF-throttle: touch pointers fire move events far faster than frame rate
+    dividerPos.current = d.axis === 'row' ? e.clientY : e.clientX
+    if (dividerRaf.current) return
+    dividerRaf.current = requestAnimationFrame(() => {
+      dividerRaf.current = 0
+      const dd = dividerRef.current
+      if (!dd) return
+      const total = dd.axis === 'row' ? box.h : box.w
+      if (total <= 0) return
+      const delta = (dividerPos.current - dd.start) / total
+      if (dd.axis === 'row') onRowFracs(dividerUtils.dragDivider(dd.startFracs, dd.index, delta))
+      else onColFracs(dividerUtils.dragDivider(dd.startFracs, dd.index, delta))
+    })
   }
   const dividerUp = (e: React.PointerEvent) => {
     if (dividerRef.current?.pointerId === e.pointerId) dividerRef.current = null
@@ -266,9 +461,14 @@ export default function CollageCanvas(props: Props) {
           {rects.map((rect, i) => {
             const img = images[i]
             const tf = transforms[i] ?? IDENTITY_TRANSFORM
+            const rot = tf.rotation
             const d = img ? displayedSize(tf, { w: img.w, h: img.h }, rect) : null
-            const x0 = d ? (rect.w - d.w) / 2 + tf.x : 0
-            const y0 = d ? (rect.h - d.h) / 2 + tf.y : 0
+            // element box is the *unrotated* bitmap's display box; CSS rotate
+            // about the center yields the rotated visual bbox of d.w × d.h
+            const bw = d ? (rot % 180 ? d.h : d.w) : 0
+            const bh = d ? (rot % 180 ? d.w : d.h) : 0
+            const cx = rect.w / 2 + tf.x
+            const cy = rect.h / 2 + tf.y
             return (
               <div
                 key={i}
@@ -289,7 +489,8 @@ export default function CollageCanvas(props: Props) {
                   'absolute touch-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                   img ? 'cursor-grab' : 'cursor-pointer bg-muted/60 hover:bg-muted',
                   hoverCell === i && dragCell !== null && dragCell !== i && 'ring-2 ring-primary ring-inset',
-                  selectedIndex === i && img && 'ring-2 ring-primary/70 ring-inset',
+                  pendingSwap === i && 'ring-2 ring-amber-500 ring-inset',
+                  selectedIndex === i && img && pendingSwap !== i && 'ring-2 ring-primary/70 ring-inset',
                 )}
                 style={{
                   left: rect.x,
@@ -300,6 +501,9 @@ export default function CollageCanvas(props: Props) {
                   overflow: 'hidden',
                 }}
                 onPointerDown={(e) => handlePointerDown(i, e)}
+                onDoubleClick={() => {
+                  if (!isCoarse) rotateCell(i)
+                }}
                 onClick={() => {
                   if (!img) onEmptyCellClick(i)
                 }}
@@ -310,7 +514,14 @@ export default function CollageCanvas(props: Props) {
                     alt=""
                     draggable={false}
                     className="pointer-events-none absolute max-w-none"
-                    style={{ left: x0, top: y0, width: d!.w, height: d!.h }}
+                    style={{
+                      left: cx - bw / 2,
+                      top: cy - bh / 2,
+                      width: bw,
+                      height: bh,
+                      transform: rot ? `rotate(${rot}deg)` : undefined,
+                      transformOrigin: 'center',
+                    }}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -332,7 +543,7 @@ export default function CollageCanvas(props: Props) {
                 aria-label={t('collage.dividerRow')}
                 tabIndex={0}
                 className="absolute z-10 cursor-row-resize focus-visible:ring-2 focus-visible:ring-ring"
-                style={{ left: box.x, top: y - 8, width: box.w, height: 16 }}
+                style={{ left: box.x, top: y - 8, width: box.w, height: 16, touchAction: 'none' }}
                 onKeyDown={(e) => {
                   const delta = e.key === 'ArrowDown' ? 0.02 : e.key === 'ArrowUp' ? -0.02 : 0
                   if (!delta) return
@@ -358,7 +569,7 @@ export default function CollageCanvas(props: Props) {
                 aria-label={t('collage.dividerCol')}
                 tabIndex={0}
                 className="absolute z-10 cursor-col-resize focus-visible:ring-2 focus-visible:ring-ring"
-                style={{ left: x - 8, top: box.y, width: 16, height: box.h }}
+                style={{ left: x - 8, top: box.y, width: 16, height: box.h, touchAction: 'none' }}
                 onKeyDown={(e) => {
                   const delta = e.key === 'ArrowRight' ? 0.02 : e.key === 'ArrowLeft' ? -0.02 : 0
                   if (!delta) return

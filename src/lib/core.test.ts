@@ -8,7 +8,7 @@ import {
   templatesForCount,
   uniformFractions,
 } from '@/lib/templates'
-import { clampPan, coverScale, sourceRect } from '@/lib/geometry'
+import { clampPan, coverScale, displayedSize, sourceRect } from '@/lib/geometry'
 import { timestampName } from '@/lib/export'
 
 describe('template data', () => {
@@ -86,7 +86,7 @@ describe('cover geometry', () => {
   })
 
   it('identity transform crops sides symmetrically', () => {
-    const s = sourceRect({ scale: 1, x: 0, y: 0 }, img, cell)
+    const s = sourceRect({ scale: 1, x: 0, y: 0, rotation: 0 }, img, cell)
     expect(s.sy).toBeCloseTo(0)
     expect(s.sh).toBeCloseTo(500)
     expect(s.sw).toBeCloseTo(500) // square crop from the middle
@@ -95,16 +95,30 @@ describe('cover geometry', () => {
 
   it('pan shifts the source window and clamps at edges', () => {
     // dragging the image left (negative x) reveals the image's right edge
-    const t = clampPan({ scale: 1, x: -9999, y: 0 }, img, cell)
+    const t = clampPan({ scale: 1, x: -9999, y: 0, rotation: 0 }, img, cell)
     const s = sourceRect(t, img, cell)
     expect(s.sx + s.sw).toBeLessThanOrEqual(img.w + 1e-6)
     expect(s.sx).toBeCloseTo(500) // right edge visible
   })
 
   it('zoom 2x quarters the visible source area', () => {
-    const s = sourceRect({ scale: 2, x: 0, y: 0 }, img, cell)
+    const s = sourceRect({ scale: 2, x: 0, y: 0, rotation: 0 }, img, cell)
     expect(s.sw).toBeCloseTo(250)
     expect(s.sh).toBeCloseTo(250)
+  })
+
+  it('rotation swaps effective dims for cover-fit', () => {
+    // landscape image rotated 90°: effective dims 500×1000, cover needs 0.2
+    expect(coverScale(img, cell, 90)).toBeCloseTo(0.2)
+    const d = displayedSize({ scale: 1, x: 0, y: 0, rotation: 90 }, img, cell)
+    expect(d.w).toBeCloseTo(100)
+    expect(d.h).toBeCloseTo(200)
+    // the exported bitmap is pre-rotated, so sourceRect sees swapped dims
+    const s = sourceRect({ scale: 1, x: 0, y: 0, rotation: 90 }, { w: 500, h: 1000 }, cell)
+    expect(s.sw).toBeCloseTo(500)
+    expect(s.sh).toBeCloseTo(500)
+    expect(s.sx).toBeCloseTo(0)
+    expect(s.sy).toBeCloseTo(250)
   })
 })
 

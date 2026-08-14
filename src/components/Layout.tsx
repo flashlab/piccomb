@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Languages, Moon, ShieldCheck, Sun } from 'lucide-react'
+import { Crop, Languages, LayoutGrid, Moon, ShieldCheck, Sun, Grid2x2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -33,9 +33,9 @@ export default function Layout() {
   const { dark, setDark } = useDarkMode()
 
   const navItems = [
-    { to: '/collage', label: t('common.nav.collage') },
-    { to: '/split', label: t('common.nav.split') },
-    { to: '/crop', label: t('common.nav.crop') },
+    { to: '/collage', label: t('common.nav.collage'), icon: LayoutGrid },
+    { to: '/split', label: t('common.nav.split'), icon: Grid2x2 },
+    { to: '/crop', label: t('common.nav.crop'), icon: Crop },
   ]
 
   return (
@@ -55,21 +55,23 @@ export default function Layout() {
             </span>
           </NavLink>
 
-          <nav className="ml-4 flex items-center gap-1">
+          <nav className="ml-2 flex items-center gap-1 sm:ml-4">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                aria-label={item.label}
                 className={({ isActive }) =>
                   cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                    'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors sm:px-3',
                     isActive
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                   )
                 }
               >
-                {item.label}
+                <item.icon className="size-4" />
+                <span className="hidden sm:inline">{item.label}</span>
               </NavLink>
             ))}
           </nav>
@@ -78,6 +80,9 @@ export default function Layout() {
             <span className="mr-1 hidden items-center gap-1 text-xs text-muted-foreground md:flex">
               <ShieldCheck className="size-3.5" />
               {t('common.local')}
+            </span>
+            <span className="mr-1 select-none text-xs tabular-nums text-muted-foreground">
+              v{__APP_VERSION__}
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -113,6 +118,28 @@ export default function Layout() {
       <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         <Outlet />
       </main>
+
+      <footer className="border-t py-4 text-center text-xs text-muted-foreground">
+        🌱 Built by{' '}
+        <a
+          href="https://github.com/flashlab"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          ZZBD
+        </a>
+        . Source at{' '}
+        <a
+          href="https://github.com/flashlab/piccomb"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          GitHub
+        </a>
+        .
+      </footer>
 
       <Toaster />
     </div>
