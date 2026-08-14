@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, Link2, Unlink2 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { BG_PRESETS, STYLE_LIMITS, type CollageStyle } from '@/lib/style'
 import { cn } from '@/lib/utils'
@@ -16,11 +14,19 @@ interface Props {
   onChange: (s: CollageStyle) => void
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function RowHeader({ label, value, action }: { label: string; value?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {children}
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span>{label}</span>
+        {value !== undefined && (
+          <>
+            <span aria-hidden>·</span>
+            {value}
+          </>
+        )}
+      </div>
+      {action}
     </div>
   )
 }
@@ -53,7 +59,8 @@ export default function StylePanel({ style, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <Row label={`${t('collage.spacing')} · ${style.spacing}`}>
+      <div className="space-y-1.5">
+        <RowHeader label={t('collage.spacing')} value={<span className="tabular-nums">{style.spacing}</span>} />
         <Slider
           aria-label={t('collage.spacing')}
           value={[style.spacing]}
@@ -62,8 +69,9 @@ export default function StylePanel({ style, onChange }: Props) {
           step={1}
           onValueChange={(v) => set({ spacing: first(v, style.spacing) })}
         />
-      </Row>
-      <Row label={`${t('collage.radius')} · ${style.radius}`}>
+      </div>
+      <div className="space-y-1.5">
+        <RowHeader label={t('collage.radius')} value={<span className="tabular-nums">{style.radius}</span>} />
         <Slider
           aria-label={t('collage.radius')}
           value={[style.radius]}
@@ -72,18 +80,30 @@ export default function StylePanel({ style, onChange }: Props) {
           step={1}
           onValueChange={(v) => set({ radius: first(v, style.radius) })}
         />
-      </Row>
-      <Row label={t('collage.bgColor')}>
-        <div className="flex items-center gap-2">
-          <Input
-            type="color"
-            value={style.bgColor}
-            onChange={(e) => set({ bgColor: e.target.value })}
-            className="h-8 w-14 cursor-pointer p-1"
-            aria-label={t('collage.bgColor')}
-          />
-          <span className="text-xs tabular-nums text-muted-foreground">{style.bgColor}</span>
-        </div>
+      </div>
+      <div className="space-y-1.5">
+        <RowHeader
+          label={t('collage.bgColor')}
+          value={
+            /* color-block switch: block bg = current color, hash lives in a
+               white chip inside; the native input is the invisible overlay */
+            <span
+              className="relative inline-flex h-6 w-20 items-center justify-center overflow-hidden rounded-md border border-border"
+              style={{ background: style.bgColor }}
+            >
+              <span className="rounded bg-white/90 px-1.5 text-[11px] tabular-nums text-black/80">
+                {style.bgColor.toUpperCase()}
+              </span>
+              <input
+                type="color"
+                value={style.bgColor}
+                onChange={(e) => set({ bgColor: e.target.value })}
+                aria-label={t('collage.bgColor')}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              />
+            </span>
+          }
+        />
         <div className="flex flex-wrap gap-1.5">
           {BG_PRESETS.map((c) => {
             const active = style.bgColor.toUpperCase() === c
@@ -112,23 +132,25 @@ export default function StylePanel({ style, onChange }: Props) {
             )
           })}
         </div>
-      </Row>
-      <Row label={t('collage.borders')}>
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{t('collage.lockBorders')}</span>
-          <button
-            type="button"
-            aria-pressed={locked}
-            aria-label={t('collage.lockBorders')}
-            onClick={toggleLock}
-            className={cn(
-              'flex size-6 items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-              locked ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent',
-            )}
-          >
-            {locked ? <Link2 className="size-3.5" /> : <Unlink2 className="size-3.5" />}
-          </button>
-        </div>
+      </div>
+      <div className="space-y-1.5">
+        <RowHeader
+          label={t('collage.borders')}
+          action={
+            <button
+              type="button"
+              aria-pressed={locked}
+              aria-label={t('collage.lockBorders')}
+              onClick={toggleLock}
+              className={cn(
+                'flex size-6 items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                locked ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-accent',
+              )}
+            >
+              {locked ? <Link2 className="size-3.5" /> : <Unlink2 className="size-3.5" />}
+            </button>
+          }
+        />
         <div className="grid grid-cols-2 gap-3">
           {borders.map((b) => (
             <div key={b.key} className="space-y-1">
@@ -146,7 +168,7 @@ export default function StylePanel({ style, onChange }: Props) {
             </div>
           ))}
         </div>
-      </Row>
+      </div>
     </div>
   )
 }

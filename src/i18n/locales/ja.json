@@ -58,7 +58,8 @@
     "tiles": "{{count}} ブロック",
     "hint": "行×列で等分割し、個別またはZIPでダウンロード",
     "tileSize": "ブロックサイズ",
-    "sourceSize": "元画像"
+    "sourceSize": "元画像",
+    "downloadSelected": "選択分をDL"
   },
   "crop": {
     "title": "トリミング",
@@ -77,7 +78,8 @@
     "ratioW": "比率（幅）",
     "ratioH": "比率（高さ）",
     "radius": "角丸",
-    "preview": "プレビュー"
+    "preview": "プレビュー",
+    "lockRatio": "縦横比を固定"
   },
   "idphoto": {
     "id1": "証明 25×35mm",

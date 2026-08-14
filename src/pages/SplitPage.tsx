@@ -39,6 +39,8 @@ export default function SplitPage() {
   const [format, setFormat] = useState<ExportFormat>('jpeg')
   const [quality, setQuality] = useState(DEFAULT_QUALITY)
   const [busy, setBusy] = useState(false)
+  /** selected tile keys "r-c" for partial download */
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   useUnloadGuard(img !== null)
 
   const tiles = useMemo(() => rows * cols, [rows, cols])
@@ -50,6 +52,7 @@ export default function SplitPage() {
       if (prev) releaseImage(prev)
       return loaded
     })
+    setSelected(new Set())
   }, [])
 
   usePasteImages(onFiles)
@@ -64,6 +67,20 @@ export default function SplitPage() {
   }
 
   const clampNum = (v: number) => Math.max(1, Math.min(10, Math.round(v) || 1))
+  const setGrid = (r: number, c: number) => {
+    setRows(r)
+    setCols(c)
+    setSelected(new Set())
+  }
+  const toggleTile = (r: number, c: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      const key = `${r}-${c}`
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   /** render tiles on demand and hand each to cb(row, col, canvas) */
   const eachTile = useCallback(
@@ -124,14 +141,14 @@ export default function SplitPage() {
             {Array.from({ length: rows - 1 }, (_, i) => (
               <div
                 key={`r${i}`}
-                className="absolute left-0 right-0 border-t border-primary/70"
+                className="absolute left-0 right-0 border-t border-dashed border-primary/70"
                 style={{ top: `${((i + 1) / rows) * 100}%` }}
               />
             ))}
             {Array.from({ length: cols - 1 }, (_, i) => (
               <div
                 key={`c${i}`}
-                className="absolute bottom-0 top-0 border-l border-primary/70"
+                className="absolute bottom-0 top-0 border-l border-dashed border-primary/70"
                 style={{ left: `${((i + 1) / cols) * 100}%` }}
               />
             ))}
@@ -164,10 +181,7 @@ export default function SplitPage() {
               variant={rows === r && cols === c ? 'default' : 'outline'}
               size="sm"
               className="text-xs"
-              onClick={() => {
-                setRows(r)
-                setCols(c)
-              }}
+              onClick={() => setGrid(r, c)}
             >
               {r}×{c}
             </Button>
@@ -181,7 +195,7 @@ export default function SplitPage() {
               min={1}
               max={10}
               value={rows}
-              onChange={(e) => setRows(clampNum(Number(e.target.value)))}
+              onChange={(e) => setGrid(clampNum(Number(e.target.value)), cols)}
             />
           </div>
           <div className="space-y-1">
@@ -191,7 +205,7 @@ export default function SplitPage() {
               min={1}
               max={10}
               value={cols}
-              onChange={(e) => setCols(clampNum(Number(e.target.value)))}
+              onChange={(e) => setGrid(rows, clampNum(Number(e.target.value)))}
             />
           </div>
         </div>
@@ -232,9 +246,23 @@ export default function SplitPage() {
         <Button className="w-full" size="lg" onClick={() => void downloadZip()} disabled={busy}>
           <Download className="size-4" /> {t('common.downloadAll')}
         </Button>
+        <Button
+          variant="outline"
+          className="w-full border-primary/60 text-primary hover:bg-primary/10"
+          size="lg"
+          disabled={busy || selected.size === 0}
+          onClick={() =>
+            void eachTile((r, c, canvas) => {
+              if (selected.has(`${r}-${c}`)) return downloadOne(r, c, canvas)
+            })
+          }
+        >
+          <Download className="size-4" />
+          {t('split.downloadSelected')}
+          {selected.size > 0 ? ` (${selected.size})` : ''}
+        </Button>
 
         <Separator />
-        <p className="text-xs text-muted-foreground">{t('common.download')}:</p>
         <div
           className="grid gap-1"
           style={{ gridTemplateColumns: `repeat(${Math.min(cols, 5)}, 1fr)` }}
@@ -242,17 +270,15 @@ export default function SplitPage() {
           {Array.from({ length: tiles }, (_, i) => {
             const r = Math.floor(i / cols)
             const c = i % cols
+            const on = selected.has(`${r}-${c}`)
             return (
               <Button
                 key={i}
-                variant="outline"
+                variant={on ? 'default' : 'outline'}
                 size="sm"
                 className="text-xs"
-                onClick={() =>
-                  void eachTile((rr, cc, canvas) => {
-                    if (rr === r && cc === c) return downloadOne(r, c, canvas)
-                  })
-                }
+                aria-pressed={on}
+                onClick={() => toggleTile(r, c)}
               >
                 r{r + 1}c{c + 1}
               </Button>

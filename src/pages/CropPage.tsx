@@ -6,7 +6,9 @@ import {
   Download,
   FlipHorizontal2,
   FlipVertical2,
+  Link2,
   Trash2,
+  Unlink2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import UploadHero from '@/components/UploadHero'
@@ -67,6 +69,8 @@ export default function CropPage() {
   const [customMode, setCustomMode] = useState<'ratio' | 'size'>('ratio')
   const [draftW, setDraftW] = useState('3')
   const [draftH, setDraftH] = useState('2')
+  /** when set, the two custom inputs are coupled at this w/h ratio */
+  const [lockedRatio, setLockedRatio] = useState<number | null>(null)
   const pendingSize = useRef<{ w: number; h: number } | null>(null)
   const [areaPixels, setAreaPixels] = useState<Area | null>(null)
   const [radiusPct, setRadiusPct] = useState(0)
@@ -152,6 +156,8 @@ export default function CropPage() {
   const applyCustom = () => {
     const w = Math.max(1, Math.round(Number(draftW) || 1))
     const h = Math.max(1, Math.round(Number(draftH) || 1))
+    setDraftW(String(w))
+    setDraftH(String(h))
     const aspectUnchanged = ratioId === 'custom' && customW === w && customH === h
     if (customMode === 'size') {
       if (aspectUnchanged && areaPixels && areaPixels.width > 0) {
@@ -173,6 +179,31 @@ export default function CropPage() {
     pendingSize.current = null
     setZoom((z) => clamp(z * (areaPixels.width / w), 1, 5))
   }, [areaPixels])
+
+  /** draft edits keep the locked ratio by recomputing the other field */
+  const onDraftW = (raw: string) => {
+    setDraftW(raw)
+    if (lockedRatio) {
+      const w = Number(raw)
+      if (w > 0) setDraftH(String(Math.max(1, Math.round(w / lockedRatio))))
+    }
+  }
+  const onDraftH = (raw: string) => {
+    setDraftH(raw)
+    if (lockedRatio) {
+      const h = Number(raw)
+      if (h > 0) setDraftW(String(Math.max(1, Math.round(h * lockedRatio))))
+    }
+  }
+  const toggleRatioLock = () => {
+    if (lockedRatio) {
+      setLockedRatio(null)
+    } else {
+      const w = Number(draftW) || 1
+      const h = Number(draftH) || 1
+      setLockedRatio(w / h)
+    }
+  }
 
   /** exact export result, re-rendered into the small preview canvas */
   useEffect(() => {
@@ -230,7 +261,7 @@ export default function CropPage() {
         </div>
         <p className="mt-3 text-xs tabular-nums text-muted-foreground">
           {areaPixels
-            ? `X ${Math.round(areaPixels.x)} · Y ${Math.round(areaPixels.y)} · ${Math.round(areaPixels.width)}×${Math.round(areaPixels.height)}px · ${rotation}°`
+            ? `[${Math.round(areaPixels.x)}, ${Math.round(areaPixels.y)}] · ${Math.round(areaPixels.width)}×${Math.round(areaPixels.height)}px · ${rotation.toFixed(1)}°`
             : t('crop.title')}
         </p>
       </div>
@@ -244,20 +275,8 @@ export default function CropPage() {
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">{t('crop.rotateFlip')}</Label>
-          <div className="flex gap-2">
-            <Toggle pressed={flipH} onPressedChange={setFlipH} aria-label={t('crop.flipH')}>
-              <FlipHorizontal2 className="size-3.5" />
-            </Toggle>
-            <Toggle pressed={flipV} onPressedChange={setFlipV} aria-label={t('crop.flipV')}>
-              <FlipVertical2 className="size-3.5" />
-            </Toggle>
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">
-            {t('crop.rotate')} · {rotation}°
+            {t('crop.rotate')} · {rotation.toFixed(1)}°
           </Label>
           <Slider
             value={[Math.round(angleToSlider(rotation) * 1000)]}
@@ -270,6 +289,26 @@ export default function CropPage() {
               setRotation(sliderToAngle(s / 1000))
             }}
           />
+          <div className="flex gap-2 pt-1">
+            <Toggle pressed={flipH} onPressedChange={setFlipH} aria-label={t('crop.flipH')}>
+              <FlipHorizontal2 className="size-3.5" />
+            </Toggle>
+            <Toggle pressed={flipV} onPressedChange={setFlipV} aria-label={t('crop.flipV')}>
+              <FlipVertical2 className="size-3.5" />
+            </Toggle>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto text-xs"
+              onClick={() => {
+                setRotation(0)
+                setFlipH(false)
+                setFlipV(false)
+              }}
+            >
+              {t('common.reset')}
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -306,30 +345,44 @@ export default function CropPage() {
               value={draftW}
               aria-label={t('crop.ratioW')}
               autoComplete="off"
-              onChange={(e) => setDraftW(e.target.value)}
+              onChange={(e) => onDraftW(e.target.value)}
               onBlur={applyCustom}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') applyCustom()
               }}
               className="h-8 w-16"
             />
-            <span className="text-muted-foreground">{customMode === 'ratio' ? ':' : '×'}</span>
+            <button
+              type="button"
+              aria-pressed={lockedRatio !== null}
+              aria-label={t('crop.lockRatio')}
+              onClick={toggleRatioLock}
+              className={cn(
+                'flex size-7 shrink-0 items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                lockedRatio !== null
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent',
+              )}
+            >
+              {lockedRatio !== null ? (
+                <Link2 className="size-3.5" />
+              ) : (
+                <Unlink2 className="size-3.5" />
+              )}
+            </button>
             <Input
               type="number"
               min={1}
               value={draftH}
               aria-label={t('crop.ratioH')}
               autoComplete="off"
-              onChange={(e) => setDraftH(e.target.value)}
+              onChange={(e) => onDraftH(e.target.value)}
               onBlur={applyCustom}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') applyCustom()
               }}
               className="h-8 w-16"
             />
-            <Button variant="outline" size="sm" className="text-xs" onClick={applyCustom}>
-              {t('crop.apply')}
-            </Button>
           </div>
         </div>
 

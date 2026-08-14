@@ -58,7 +58,8 @@
     "tiles": "{{count}} tiles",
     "hint": "Split into rows × columns; download tiles individually or as a ZIP",
     "tileSize": "Tile size",
-    "sourceSize": "Source"
+    "sourceSize": "Source",
+    "downloadSelected": "Download selected"
   },
   "crop": {
     "title": "Crop Image",
@@ -77,7 +78,8 @@
     "ratioW": "Ratio width",
     "ratioH": "Ratio height",
     "radius": "Corner radius",
-    "preview": "Preview"
+    "preview": "Preview",
+    "lockRatio": "Lock aspect ratio"
   },
   "idphoto": {
     "id1": "ID 25×35mm",

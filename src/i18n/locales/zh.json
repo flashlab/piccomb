@@ -58,7 +58,8 @@
     "tiles": "{{count}} 个分块",
     "hint": "按行×列等分图片，可单块下载或打包 ZIP",
     "tileSize": "单块尺寸",
-    "sourceSize": "原图"
+    "sourceSize": "原图",
+    "downloadSelected": "部分下载"
   },
   "crop": {
     "title": "图片裁剪",
@@ -77,7 +78,8 @@
     "ratioW": "比例宽",
     "ratioH": "比例高",
     "radius": "圆角",
-    "preview": "预览"
+    "preview": "预览",
+    "lockRatio": "锁定横纵比"
   },
   "idphoto": {
     "id1": "一寸",
