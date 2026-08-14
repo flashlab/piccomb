@@ -3,6 +3,7 @@ import Layout from '@/components/Layout'
 import CollagePage from '@/pages/CollagePage'
 import SplitPage from '@/pages/SplitPage'
 import CropPage from '@/pages/CropPage'
+import EditPage from '@/pages/EditPage'
 
 const router = createBrowserRouter([
   {
@@ -12,6 +13,7 @@ const router = createBrowserRouter([
       { path: 'collage', element: <CollagePage /> },
       { path: 'split', element: <SplitPage /> },
       { path: 'crop', element: <CropPage /> },
+      { path: 'edit', element: <EditPage /> },
       { path: '*', element: <Navigate to="/collage" replace /> },
     ],
   },

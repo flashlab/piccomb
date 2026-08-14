@@ -10,6 +10,16 @@ import {
 } from '@/lib/templates'
 import { clampPan, coverScale, displayedSize, sourceRect, sliderToAngle, angleToSlider } from '@/lib/geometry'
 import { timestampName, cornerRadiusPx } from '@/lib/export'
+import {
+  arrowHead,
+  distToPolyline,
+  distToSegment,
+  hitTest,
+  mosaicBlockPx,
+  resScale,
+  strokeBBox,
+  type Shape,
+} from '@/lib/annotate'
 
 describe('template data', () => {
   it('has 135 templates covering 1..16 images', () => {
@@ -119,6 +129,72 @@ describe('cover geometry', () => {
     expect(s.sh).toBeCloseTo(500)
     expect(s.sx).toBeCloseTo(0)
     expect(s.sy).toBeCloseTo(250)
+  })
+})
+
+describe('annotate geometry', () => {
+  it('distToSegment: perpendicular, endpoint and degenerate cases', () => {
+    expect(distToSegment(0, 5, -10, 0, 10, 0)).toBeCloseTo(5) // perpendicular
+    expect(distToSegment(20, 0, -10, 0, 10, 0)).toBeCloseTo(10) // beyond endpoint clamps
+    expect(distToSegment(3, 4, 0, 0, 0, 0)).toBeCloseTo(5) // degenerate point segment
+  })
+
+  it('distToPolyline takes the nearest segment', () => {
+    const pts = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 100 },
+    ]
+    expect(distToPolyline(50, 10, pts)).toBeCloseTo(10)
+    expect(distToPolyline(110, 50, pts)).toBeCloseTo(10)
+    expect(distToPolyline(50, 50, pts)).toBeCloseTo(50)
+  })
+
+  it('arrowHead wings sit behind the tip at the shaft angle', () => {
+    const [w1, w2] = arrowHead(0, 0, 100, 0, 10)
+    expect(w1.x).toBeLessThan(100)
+    expect(w2.x).toBeLessThan(100)
+    expect(Math.abs(w1.y + w2.y)).toBeLessThan(1e-9) // symmetric about the shaft
+    expect(Math.abs(w1.y)).toBeGreaterThan(1)
+    expect(Math.hypot(100 - w1.x, w1.y)).toBeCloseTo(32, 0) // len = 3.2 * lw
+  })
+
+  it('strokeBBox expands by half width', () => {
+    const bb = strokeBBox([{ x: 10, y: 10 }, { x: 50, y: 30 }], 5)
+    expect(bb).toEqual({ x: 5, y: 5, w: 50, h: 30 })
+  })
+
+  it('hitTest: rect/ellipse grab by whole bbox (fill or not)', () => {
+    const base = { id: 1, color: '#000', level: 2 as const, x: 100, y: 100, w: 200, h: 100 }
+    const outline: Shape = { ...base, kind: 'rect', fill: false }
+    const filled: Shape = { ...base, kind: 'rect', fill: true }
+    expect(hitTest(outline, 100, 150, 1500)).toBe(true) // edge
+    expect(hitTest(outline, 200, 150, 1500)).toBe(true) // interior grabs too
+    expect(hitTest(outline, 50, 50, 1500)).toBe(false) // outside
+    expect(hitTest(filled, 200, 150, 1500)).toBe(true)
+  })
+
+  it('hitTest: mosaic is never selectable (moving it would expose the original)', () => {
+    const m: Shape = {
+      id: 1,
+      kind: 'mosaic',
+      color: '#000',
+      level: 2,
+      points: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
+    }
+    expect(hitTest(m, 50, 50, 1500)).toBe(false)
+  })
+
+  it('mosaic block scales with stroke width, min 8px', () => {
+    expect(mosaicBlockPx(1, 1500)).toBe(8) // 6/3=2 → clamped
+    expect(mosaicBlockPx(3, 1500)).toBe(8) // 20/3<8 → clamped
+    expect(mosaicBlockPx(3, 3000)).toBeCloseTo((20 * 2) / 3, 5) // 40/3 > 8
+  })
+
+  it('resScale clamps', () => {
+    expect(resScale(1500)).toBeCloseTo(1)
+    expect(resScale(100)).toBeCloseTo(0.7)
+    expect(resScale(99999)).toBeCloseTo(3)
   })
 })
 

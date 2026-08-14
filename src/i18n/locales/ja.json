@@ -2,7 +2,7 @@
   "common": {
     "brand": "PicComb",
     "tagline": "無料オンライン画像コラージュツール",
-    "nav": { "collage": "レイアウト", "split": "画像分割", "crop": "トリミング" },
+    "nav": { "collage": "レイアウト", "split": "画像分割", "crop": "トリミング", "edit": "編集" },
     "upload": "画像をアップロード",
     "uploadHint": "クリックまたはドラッグ＆ドロップ",
     "download": "ダウンロード",
@@ -80,6 +80,26 @@
     "radius": "角丸",
     "preview": "プレビュー",
     "lockRatio": "縦横比を固定"
+  },
+  "edit": {
+    "title": "画像編集",
+    "hint": "選択ツールで図形を移動、Deleteで削除、Ctrl+Zで元に戻す",
+    "thickness": "太さ",
+    "fill": "塗りつぶし",
+    "emojiSize": "絵文字サイズ",
+    "uploadEmoji": "絵文字をアップロード",
+    "selectHint": "クリックで選択、ドラッグで移動",
+    "deleteSelected": "選択を削除",
+    "tool": {
+      "select": "選択",
+      "rect": "矩形",
+      "ellipse": "楕円",
+      "arrow": "矢印",
+      "brush": "ペン",
+      "mosaic": "モザイク",
+      "text": "テキスト",
+      "emoji": "絵文字"
+    }
   },
   "idphoto": {
     "id1": "証明 25×35mm",

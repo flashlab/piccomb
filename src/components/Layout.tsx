@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Crop, Languages, LayoutGrid, Moon, ShieldCheck, Sun, Grid2x2 } from 'lucide-react'
+import { Crop, Languages, LayoutGrid, Moon, PenLine, ShieldCheck, Sun, Grid2x2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -36,6 +36,7 @@ export default function Layout() {
     { to: '/collage', label: t('common.nav.collage'), icon: LayoutGrid },
     { to: '/split', label: t('common.nav.split'), icon: Grid2x2 },
     { to: '/crop', label: t('common.nav.crop'), icon: Crop },
+    { to: '/edit', label: t('common.nav.edit'), icon: PenLine },
   ]
 
   return (

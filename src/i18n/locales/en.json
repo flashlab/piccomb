@@ -2,7 +2,7 @@
   "common": {
     "brand": "PicComb",
     "tagline": "Free online collage maker",
-    "nav": { "collage": "Collage", "split": "Split", "crop": "Crop" },
+    "nav": { "collage": "Collage", "split": "Split", "crop": "Crop", "edit": "Edit" },
     "upload": "Upload images",
     "uploadHint": "Click or drag images here",
     "download": "Download",
@@ -80,6 +80,26 @@
     "radius": "Corner radius",
     "preview": "Preview",
     "lockRatio": "Lock aspect ratio"
+  },
+  "edit": {
+    "title": "Edit Image",
+    "hint": "Select tool moves shapes, Delete removes the selection, Ctrl+Z undoes",
+    "thickness": "Thickness",
+    "fill": "Fill",
+    "emojiSize": "Emoji size",
+    "uploadEmoji": "Upload emoji",
+    "selectHint": "Click to select, drag to move",
+    "deleteSelected": "Delete selected",
+    "tool": {
+      "select": "Select",
+      "rect": "Rectangle",
+      "ellipse": "Ellipse",
+      "arrow": "Arrow",
+      "brush": "Brush",
+      "mosaic": "Mosaic",
+      "text": "Text",
+      "emoji": "Emoji"
+    }
   },
   "idphoto": {
     "id1": "ID 25×35mm",
