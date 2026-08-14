@@ -15,7 +15,11 @@
     "toggleTheme": "Toggle theme",
     "skipToContent": "Skip to content",
     "undo": "Undo",
-    "cleared": "Cleared"
+    "cleared": "Cleared",
+    "leaveTitle": "Leave this tool?",
+    "leaveDesc": "Loaded images will be discarded.",
+    "stay": "Stay",
+    "leave": "Leave"
   },
   "collage": {
     "title": "Layout Collage",
@@ -43,7 +47,8 @@
     "copyClipboard": "Copy to clipboard",
     "copied": "Copied to clipboard",
     "dividerRow": "Row divider",
-    "dividerCol": "Column divider"
+    "dividerCol": "Column divider",
+    "lockBorders": "Link all sides"
   },
   "split": {
     "title": "Split Image",

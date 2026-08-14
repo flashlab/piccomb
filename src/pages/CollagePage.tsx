@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ImagePlus, Shuffle, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import CollageCanvas from '@/components/collage/CollageCanvas'
+import LeaveGuard from '@/components/LeaveGuard'
 import ExportPanel, { DEFAULT_EXPORT_SETTINGS, type ExportSettings } from '@/components/collage/ExportPanel'
 import ImageStrip from '@/components/collage/ImageStrip'
 import StylePanel from '@/components/collage/StylePanel'
@@ -18,6 +19,7 @@ import { presetSize } from '@/lib/sizePresets'
 import { DEFAULT_STYLE } from '@/lib/style'
 import { MAX_IMAGES, matchTemplate, templatesForCount, uniformFractions } from '@/lib/templates'
 import { useUnloadGuard } from '@/lib/useUnloadGuard'
+import { usePasteImages } from '@/lib/usePasteImages'
 
 const imageCountGuard = (cells: (LoadedImage | null)[]) => cells.some(Boolean)
 
@@ -52,17 +54,24 @@ export default function CollagePage() {
 
   /** reset geometry whenever the template identity changes */
   const applyTemplate = useCallback(
-    (id: string | null, baseCells: (LoadedImage | null)[]) => {
+    (
+      id: string | null,
+      baseCells: (LoadedImage | null)[],
+      baseTransforms?: ImageTransform[],
+    ) => {
       const tpl = matchTemplate(Math.max(1, baseCells.filter(Boolean).length), id)
       setTemplateId(tpl.id)
       setRowFracs(uniformFractions(tpl.rows))
       setColFracs(uniformFractions(tpl.cols))
-      setTransforms(Array(tpl.count).fill(null).map(() => ({ ...IDENTITY_TRANSFORM })))
-      setSelectedIndex(null)
       // normalize cell array to template length
       const next = baseCells.slice(0, tpl.count)
       while (next.length < tpl.count) next.push(null)
       setCells(next)
+      // transforms stay aligned with their images when provided
+      const nt = baseTransforms ? baseTransforms.slice(0, tpl.count) : []
+      while (nt.length < tpl.count) nt.push({ ...IDENTITY_TRANSFORM })
+      setTransforms(nt)
+      setSelectedIndex(null)
     },
     [],
   )
@@ -101,18 +110,25 @@ export default function CollagePage() {
     [cells, template.count, applyTemplate],
   )
 
+  usePasteImages(
+    useCallback((files: File[]) => void addFiles(files), [addFiles]),
+  )
+
   const removeAt = (i: number) => {
-    const next = [...cells]
-    if (next[i]) releaseImage(next[i]!)
-    next[i] = null
-    const remaining = next.filter(Boolean).length
-    if (remaining === 0) {
+    const img = cells[i]
+    if (img) releaseImage(img)
+    // dense repack: drop cell i, keep the rest aligned with their transforms
+    const keep = cells.map((c, idx) => (c && idx !== i ? idx : -1)).filter((idx) => idx >= 0)
+    const denseCells = keep.map((idx) => cells[idx])
+    const denseTransforms = keep.map((idx) => transforms[idx] ?? { ...IDENTITY_TRANSFORM })
+    if (denseCells.length === 0) {
       setCells([])
+      setTransforms([])
       setTemplateId(null)
       setSelectedIndex(null)
       return
     }
-    applyTemplate(templateId, next)
+    applyTemplate(templateId, denseCells, denseTransforms)
   }
 
   const clearAll = () => {
@@ -150,13 +166,13 @@ export default function CollagePage() {
   const pickTemplate = (id: string) => {
     if (id === template.id) return
     const tpl = matchTemplate(imageCount, id)
-    applyTemplate(tpl.id, cells)
+    applyTemplate(tpl.id, cells, transforms)
   }
 
   const pickRandom = () => {
     const pool = templatesForCount(template.count).filter((t) => t.id !== template.id)
     if (pool.length === 0) return
-    applyTemplate(pool[Math.floor(Math.random() * pool.length)].id, cells)
+    applyTemplate(pool[Math.floor(Math.random() * pool.length)].id, cells, transforms)
   }
 
   const renderCurrent = () => {
@@ -268,6 +284,7 @@ export default function CollagePage() {
       onDrop={(e) => { e.preventDefault(); setDragOver(false); void addFiles(e.dataTransfer.files) }}
     >
       <h1 className="sr-only">{t('collage.title')}</h1>
+      <LeaveGuard active={imageCount > 0} />
       <div className="min-w-0 flex-1">
         <CollageCanvas
           images={cells}

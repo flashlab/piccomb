@@ -15,7 +15,11 @@
     "toggleTheme": "切换主题",
     "skipToContent": "跳到主内容",
     "undo": "撤销",
-    "cleared": "已清空"
+    "cleared": "已清空",
+    "leaveTitle": "离开当前工具？",
+    "leaveDesc": "当前加载的图片将被丢弃。",
+    "stay": "留下",
+    "leave": "离开"
   },
   "collage": {
     "title": "布局拼图",
@@ -43,7 +47,8 @@
     "copyClipboard": "复制到剪贴板",
     "copied": "已复制到剪贴板",
     "dividerRow": "行分割线",
-    "dividerCol": "列分割线"
+    "dividerCol": "列分割线",
+    "lockBorders": "锁定四边同步"
   },
   "split": {
     "title": "图片分割",

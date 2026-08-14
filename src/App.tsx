@@ -1,21 +1,22 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import Layout from '@/components/Layout'
 import CollagePage from '@/pages/CollagePage'
 import SplitPage from '@/pages/SplitPage'
 import CropPage from '@/pages/CropPage'
 
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { index: true, element: <Navigate to="/collage" replace /> },
+      { path: 'collage', element: <CollagePage /> },
+      { path: 'split', element: <SplitPage /> },
+      { path: 'crop', element: <CropPage /> },
+      { path: '*', element: <Navigate to="/collage" replace /> },
+    ],
+  },
+])
+
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Navigate to="/collage" replace />} />
-          <Route path="/collage" element={<CollagePage />} />
-          <Route path="/split" element={<SplitPage />} />
-          <Route path="/crop" element={<CropPage />} />
-          <Route path="*" element={<Navigate to="/collage" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  )
+  return <RouterProvider router={router} />
 }

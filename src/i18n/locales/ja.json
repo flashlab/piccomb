@@ -15,7 +15,11 @@
     "toggleTheme": "テーマ切替",
     "skipToContent": "メインコンテンツへ",
     "undo": "元に戻す",
-    "cleared": "クリアしました"
+    "cleared": "クリアしました",
+    "leaveTitle": "このツールを離れますか？",
+    "leaveDesc": "読み込んだ画像は破棄されます。",
+    "stay": "とどまる",
+    "leave": "離れる"
   },
   "collage": {
     "title": "レイアウトコラージュ",
@@ -43,7 +47,8 @@
     "copyClipboard": "クリップボードにコピー",
     "copied": "コピーしました",
     "dividerRow": "行の分割線",
-    "dividerCol": "列の分割線"
+    "dividerCol": "列の分割線",
+    "lockBorders": "4辺を連動"
   },
   "split": {
     "title": "画像分割",

@@ -15,6 +15,17 @@ import { placeCells, type Template } from '@/lib/templates'
 import type { CollageStyle } from '@/lib/style'
 import { cn } from '@/lib/utils'
 
+/**
+ * Selection/hover highlights use outer box-shadow (not ring-inset): inset
+ * rings paint *below* the cell's image and get covered. z-10 lifts the
+ * shadow above sibling cells.
+ */
+const SHADOW_SELECTED =
+  'z-10 shadow-[0_0_0_3px_var(--primary),0_10px_28px_rgba(0,0,0,0.35)]'
+const SHADOW_PENDING =
+  'z-10 shadow-[0_0_0_3px_var(--color-amber-500),0_10px_28px_rgba(0,0,0,0.35)]'
+const SHADOW_HOVER = 'z-10 shadow-[0_0_0_3px_var(--primary)]'
+
 interface DragState {
   mode: 'pan' | 'maybe-swap' | 'swap'
   cell: number
@@ -488,9 +499,9 @@ export default function CollageCanvas(props: Props) {
                 className={cn(
                   'absolute touch-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                   img ? 'cursor-grab' : 'cursor-pointer bg-muted/60 hover:bg-muted',
-                  hoverCell === i && dragCell !== null && dragCell !== i && 'ring-2 ring-primary ring-inset',
-                  pendingSwap === i && 'ring-2 ring-amber-500 ring-inset',
-                  selectedIndex === i && img && pendingSwap !== i && 'ring-2 ring-primary/70 ring-inset',
+                  hoverCell === i && dragCell !== null && dragCell !== i && SHADOW_HOVER,
+                  pendingSwap === i && SHADOW_PENDING,
+                  selectedIndex === i && img && pendingSwap !== i && SHADOW_SELECTED,
                 )}
                 style={{
                   left: rect.x,

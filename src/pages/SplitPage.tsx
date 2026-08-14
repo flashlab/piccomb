@@ -4,6 +4,7 @@ import { Download, Trash2 } from 'lucide-react'
 import JSZip from 'jszip'
 import { toast } from 'sonner'
 import UploadHero from '@/components/UploadHero'
+import LeaveGuard from '@/components/LeaveGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +28,7 @@ import {
 } from '@/lib/export'
 import { loadImageFile, releaseImage, type LoadedImage } from '@/lib/images'
 import { useUnloadGuard } from '@/lib/useUnloadGuard'
+import { usePasteImages } from '@/lib/usePasteImages'
 
 export default function SplitPage() {
   const { t } = useTranslation()
@@ -48,6 +50,8 @@ export default function SplitPage() {
       return loaded
     })
   }, [])
+
+  usePasteImages(onFiles)
 
   const reset = () => {
     if (!img) return
@@ -103,6 +107,7 @@ export default function SplitPage() {
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       <h1 className="sr-only">{t('split.title')}</h1>
+      <LeaveGuard active={img !== null} />
       <div className="min-w-0 flex-1">
         <div className="relative mx-auto inline-block w-full max-w-3xl">
           <img

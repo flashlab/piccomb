@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import UploadHero from '@/components/UploadHero'
+import LeaveGuard from '@/components/LeaveGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,6 +37,7 @@ import {
 import { flipImage, loadImageFile, releaseImage, type LoadedImage } from '@/lib/images'
 import { ID_PHOTO_PRESETS } from '@/lib/sizePresets'
 import { useUnloadGuard } from '@/lib/useUnloadGuard'
+import { usePasteImages } from '@/lib/usePasteImages'
 import { cn } from '@/lib/utils'
 
 const RATIOS: { id: string; value: number | undefined }[] = [
@@ -105,6 +107,8 @@ export default function CropPage() {
     setZoom(1)
   }, [])
 
+  usePasteImages(onFiles)
+
   const reset = () => {
     if (!original) return
     const stashed = original
@@ -154,6 +158,7 @@ export default function CropPage() {
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       <h1 className="sr-only">{t('crop.title')}</h1>
+      <LeaveGuard active={original !== null} />
       <div className="min-w-0 flex-1">
         <div className="relative h-[60vh] w-full overflow-hidden rounded-md bg-muted/30">
           {working && (
