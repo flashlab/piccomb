@@ -70,7 +70,9 @@
     "rotateFlip": "Rotate & flip",
     "idSizes": "ID / print sizes",
     "ratioW": "Ratio width",
-    "ratioH": "Ratio height"
+    "ratioH": "Ratio height",
+    "radius": "Corner radius",
+    "preview": "Preview"
   },
   "idphoto": {
     "id1": "ID 25×35mm",

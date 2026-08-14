@@ -9,7 +9,7 @@ import {
   uniformFractions,
 } from '@/lib/templates'
 import { clampPan, coverScale, displayedSize, sourceRect } from '@/lib/geometry'
-import { timestampName } from '@/lib/export'
+import { timestampName, cornerRadiusPx } from '@/lib/export'
 
 describe('template data', () => {
   it('has 135 templates covering 1..16 images', () => {
@@ -127,5 +127,19 @@ describe('timestampName', () => {
     const d = new Date(2026, 7, 14, 15, 30, 12)
     expect(timestampName('collage', 'png', d)).toBe('piccomb_collage_20260814-153012.png')
     expect(timestampName('split', 'jpeg', d)).toBe('piccomb_split_20260814-153012.jpg')
+  })
+})
+
+describe('cornerRadiusPx', () => {
+  it('100% of a square is a full circle', () => {
+    expect(cornerRadiusPx(100, { w: 800, h: 800 })).toBeCloseTo(400)
+  })
+  it('uses the shorter edge', () => {
+    expect(cornerRadiusPx(100, { w: 1200, h: 800 })).toBeCloseTo(400)
+    expect(cornerRadiusPx(50, { w: 1200, h: 800 })).toBeCloseTo(200)
+  })
+  it('clamps out-of-range input', () => {
+    expect(cornerRadiusPx(0, { w: 800, h: 800 })).toBe(0)
+    expect(cornerRadiusPx(999, { w: 800, h: 800 })).toBeCloseTo(400)
   })
 })

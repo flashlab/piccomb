@@ -70,7 +70,9 @@
     "rotateFlip": "旋转 & 翻转",
     "idSizes": "证件/冲印尺寸",
     "ratioW": "比例宽",
-    "ratioH": "比例高"
+    "ratioH": "比例高",
+    "radius": "圆角",
+    "preview": "预览"
   },
   "idphoto": {
     "id1": "一寸",

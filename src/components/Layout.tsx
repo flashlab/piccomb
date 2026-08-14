@@ -81,9 +81,6 @@ export default function Layout() {
               <ShieldCheck className="size-3.5" />
               {t('common.local')}
             </span>
-            <span className="mr-1 select-none text-xs tabular-nums text-muted-foreground">
-              v{__APP_VERSION__}
-            </span>
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={<Button variant="ghost" size="icon" aria-label={t('common.language')} />}
@@ -138,7 +135,7 @@ export default function Layout() {
         >
           GitHub
         </a>
-        .
+        . <span className="tabular-nums text-muted-foreground/70">v{__APP_VERSION__}</span>
       </footer>
 
       <Toaster />

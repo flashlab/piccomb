@@ -16,15 +16,13 @@ import type { CollageStyle } from '@/lib/style'
 import { cn } from '@/lib/utils'
 
 /**
- * Selection/hover highlights use outer box-shadow (not ring-inset): inset
- * rings paint *below* the cell's image and get covered. z-10 lifts the
- * shadow above sibling cells.
+ * Selection/hover highlights use an OUTER ring (not ring-inset): inset rings
+ * paint *below* the cell's image and get covered. z-10 lifts the ring above
+ * sibling cells. No drop shadows.
  */
-const SHADOW_SELECTED =
-  'z-10 shadow-[0_0_0_3px_var(--primary),0_10px_28px_rgba(0,0,0,0.35)]'
-const SHADOW_PENDING =
-  'z-10 shadow-[0_0_0_3px_var(--color-amber-500),0_10px_28px_rgba(0,0,0,0.35)]'
-const SHADOW_HOVER = 'z-10 shadow-[0_0_0_3px_var(--primary)]'
+const RING_SELECTED = 'z-10 ring-2 ring-primary'
+const RING_PENDING = 'z-10 ring-2 ring-amber-500'
+const RING_HOVER = 'z-10 ring-2 ring-primary'
 
 interface DragState {
   mode: 'pan' | 'maybe-swap' | 'swap'
@@ -33,6 +31,8 @@ interface DragState {
   startX: number
   startY: number
   startTransform: ImageTransform
+  /** whether this cell was already selected at pointerdown (for click-to-deselect) */
+  wasSelected: boolean
 }
 
 interface Props {
@@ -303,6 +303,7 @@ export default function CollageCanvas(props: Props) {
       startX: e.clientX,
       startY: e.clientY,
       startTransform: transforms[i] ?? IDENTITY_TRANSFORM,
+      wasSelected: selectedIndex === i,
     }
     onSelect(i)
   }
@@ -351,7 +352,11 @@ export default function CollageCanvas(props: Props) {
       if (target !== null && target !== d.cell) onSwap(d.cell, target)
     } else if (d.mode === 'maybe-swap') {
       const moved = Math.hypot(e.clientX - d.startX, e.clientY - d.startY)
-      if (moved <= 6 && !images[d.cell]) onEmptyCellClick(d.cell)
+      if (moved <= 6) {
+        if (!images[d.cell]) onEmptyCellClick(d.cell)
+        // click a selected cell deselects it (hides the ring)
+        else if (d.wasSelected) onSelect(null)
+      }
     }
     setDragCell(null)
     setHoverCell(null)
@@ -499,9 +504,9 @@ export default function CollageCanvas(props: Props) {
                 className={cn(
                   'absolute touch-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                   img ? 'cursor-grab' : 'cursor-pointer bg-muted/60 hover:bg-muted',
-                  hoverCell === i && dragCell !== null && dragCell !== i && SHADOW_HOVER,
-                  pendingSwap === i && SHADOW_PENDING,
-                  selectedIndex === i && img && pendingSwap !== i && SHADOW_SELECTED,
+                  hoverCell === i && dragCell !== null && dragCell !== i && RING_HOVER,
+                  pendingSwap === i && RING_PENDING,
+                  selectedIndex === i && img && pendingSwap !== i && RING_SELECTED,
                 )}
                 style={{
                   left: rect.x,

@@ -21,6 +21,7 @@ import {
   DEFAULT_QUALITY,
   canvasToBlob,
   downloadBlob,
+  flattenForFormat,
   splitImage,
   splitTileName,
   timestampName,
@@ -77,7 +78,7 @@ export default function SplitPage() {
   )
 
   const downloadOne = async (r: number, c: number, canvas: HTMLCanvasElement) => {
-    const blob = await canvasToBlob(canvas, format, quality)
+    const blob = await canvasToBlob(flattenForFormat(canvas, format), format, quality)
     downloadBlob(blob, splitTileName(img!.name, r, c, format))
   }
 
@@ -87,7 +88,7 @@ export default function SplitPage() {
     try {
       const zip = new JSZip()
       await eachTile(async (r, c, canvas) => {
-        const blob = await canvasToBlob(canvas, format, quality)
+        const blob = await canvasToBlob(flattenForFormat(canvas, format), format, quality)
         zip.file(splitTileName(img.name, r, c, format), blob)
       })
       const blob = await zip.generateAsync({ type: 'blob' })

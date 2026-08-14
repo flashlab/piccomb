@@ -1,5 +1,5 @@
 import type { ImageTransform, Size } from '@/lib/geometry'
-import { IDENTITY_TRANSFORM, cellRect, sourceRect, type PixelRect } from '@/lib/geometry'
+import { IDENTITY_TRANSFORM, cellRect, clamp, sourceRect, type PixelRect } from '@/lib/geometry'
 import { placeCells, type Template } from '@/lib/templates'
 import type { CollageStyle } from '@/lib/style'
 
@@ -12,6 +12,23 @@ export const FORMAT_MIME: Record<ExportFormat, string> = {
 }
 
 export const DEFAULT_QUALITY = 0.92
+
+/**
+ * JPEG has no alpha: transparent pixels would serialize as black.
+ * Flatten onto white first (conventional behavior for JPEG export).
+ */
+export function flattenForFormat(canvas: HTMLCanvasElement, format: ExportFormat): HTMLCanvasElement {
+  if (format !== 'jpeg') return canvas
+  const c = document.createElement('canvas')
+  c.width = canvas.width
+  c.height = canvas.height
+  const ctx = c.getContext('2d')
+  if (!ctx) throw new Error('no 2d context')
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, c.width, c.height)
+  ctx.drawImage(canvas, 0, 0)
+  return c
+}
 
 /** piccomb_collage_20260814-153012.png style names */
 export function timestampName(tool: string, format: ExportFormat, now = new Date()): string {
@@ -148,16 +165,17 @@ export interface CropArea {
 }
 
 /**
- * Crop `img` to `area` (pixels) honoring an arbitrary `rotation` (degrees).
+ * Crop `img` to `area` (pixels) honoring an arbitrary `rotation` (degrees)
+ * and an optional corner `radiusPx` (in output pixels; corners stay
+ * transparent, or white after flattenForFormat for JPEG).
  * `area` is expressed in the rotated bounding-box space, exactly as
  * react-easy-crop reports via onCropComplete.
- * Official react-easy-crop recipe: draw rotated into a bounding-box canvas,
- * then cut the area out of it.
  */
 export function cropWithRotation(
   img: HTMLImageElement,
   area: CropArea,
   rotation: number,
+  radiusPx = 0,
 ): HTMLCanvasElement {
   const rot = (rotation * Math.PI) / 180
   const sw = img.naturalWidth
@@ -179,6 +197,11 @@ export function cropWithRotation(
   out.height = Math.max(1, Math.round(area.height))
   const octx = out.getContext('2d')
   if (!octx) throw new Error('no 2d context')
+  if (radiusPx > 0) {
+    octx.beginPath()
+    octx.roundRect(0, 0, out.width, out.height, radiusPx)
+    octx.clip()
+  }
   octx.drawImage(
     stage,
     Math.round(area.x),
@@ -191,6 +214,11 @@ export function cropWithRotation(
     out.height,
   )
   return out
+}
+
+/** corner radius in output px: percent of half the shorter edge (100 = circle on 1:1) */
+export function cornerRadiusPx(pct: number, out: Size): number {
+  return (clamp(pct, 0, 100) / 100) * (Math.min(out.w, out.h) / 2)
 }
 
 export function splitTileName(base: string, row: number, col: number, format: ExportFormat): string {

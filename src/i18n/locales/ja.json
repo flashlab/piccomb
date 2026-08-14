@@ -70,7 +70,9 @@
     "rotateFlip": "回転・反転",
     "idSizes": "証明/印刷サイズ",
     "ratioW": "比率（幅）",
-    "ratioH": "比率（高さ）"
+    "ratioH": "比率（高さ）",
+    "radius": "角丸",
+    "preview": "プレビュー"
   },
   "idphoto": {
     "id1": "証明 25×35mm",

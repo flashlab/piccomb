@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Cropper from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
@@ -29,8 +29,10 @@ import { Toggle } from '@/components/ui/toggle'
 import {
   DEFAULT_QUALITY,
   canvasToBlob,
+  cornerRadiusPx,
   cropWithRotation,
   downloadBlob,
+  flattenForFormat,
   timestampName,
   type ExportFormat,
 } from '@/lib/export'
@@ -64,9 +66,11 @@ export default function CropPage() {
   const [customW, setCustomW] = useState(3)
   const [customH, setCustomH] = useState(2)
   const [areaPixels, setAreaPixels] = useState<Area | null>(null)
+  const [radiusPct, setRadiusPct] = useState(0)
   const [format, setFormat] = useState<ExportFormat>('jpeg')
   const [quality, setQuality] = useState(DEFAULT_QUALITY)
   const [busy, setBusy] = useState(false)
+  const previewRef = useRef<HTMLCanvasElement>(null)
   useUnloadGuard(original !== null)
 
   // re-bake the flip bitmap whenever flips change
@@ -105,6 +109,7 @@ export default function CropPage() {
     setRatioId('free')
     setCrop({ x: 0, y: 0 })
     setZoom(1)
+    setRadiusPct(0)
   }, [])
 
   usePasteImages(onFiles)
@@ -137,12 +142,28 @@ export default function CropPage() {
 
   const rotate = (delta: number) => setRotation((r) => (((r + delta) % 360) + 360) % 360)
 
+  /** exact export result, re-rendered into the small preview canvas */
+  useEffect(() => {
+    const cv = previewRef.current
+    if (!cv || !working || !areaPixels) return
+    const radius = cornerRadiusPx(radiusPct, { w: areaPixels.width, h: areaPixels.height })
+    const full = cropWithRotation(working.el, areaPixels, rotation, radius)
+    const scale = Math.min(1, 240 / Math.max(full.width, full.height))
+    cv.width = Math.max(1, Math.round(full.width * scale))
+    cv.height = Math.max(1, Math.round(full.height * scale))
+    const ctx = cv.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    ctx.drawImage(full, 0, 0, cv.width, cv.height)
+  }, [working, areaPixels, rotation, radiusPct])
+
   const doExport = async () => {
     if (!working || !areaPixels) return
     setBusy(true)
     try {
-      const canvas = cropWithRotation(working.el, areaPixels, rotation)
-      const blob = await canvasToBlob(canvas, format, quality)
+      const radius = cornerRadiusPx(radiusPct, { w: areaPixels.width, h: areaPixels.height })
+      const canvas = cropWithRotation(working.el, areaPixels, rotation, radius)
+      const blob = await canvasToBlob(flattenForFormat(canvas, format), format, quality)
       downloadBlob(blob, timestampName('crop', format))
       toast.success(t('export.success'))
     } catch (err) {
@@ -284,9 +305,40 @@ export default function CropPage() {
             min={1}
             max={5}
             step={0.01}
+            aria-label={t('crop.zoom')}
             onValueChange={(v) => setZoom(typeof v === 'number' ? v : (v[0] ?? zoom))}
           />
         </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">
+            {t('crop.radius')} · {radiusPct}%
+          </Label>
+          <Slider
+            value={[radiusPct]}
+            min={0}
+            max={100}
+            step={1}
+            aria-label={t('crop.radius')}
+            onValueChange={(v) => setRadiusPct(typeof v === 'number' ? v : (v[0] ?? radiusPct))}
+          />
+        </div>
+
+        {areaPixels && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t('crop.preview')}</Label>
+            <div className="flex justify-center rounded-md border bg-muted/30 p-2">
+              <canvas
+                ref={previewRef}
+                className="max-h-40 max-w-full"
+                style={{
+                  background:
+                    'repeating-conic-gradient(var(--muted) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px',
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         <Separator />
 
