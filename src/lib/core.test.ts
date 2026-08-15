@@ -16,6 +16,7 @@ import {
   distToSegment,
   hitTest,
   mosaicBlockPx,
+  rectRadius,
   resScale,
   strokeBBox,
   type Shape,
@@ -186,15 +187,21 @@ describe('annotate geometry', () => {
   })
 
   it('mosaic block scales with stroke width, min 8px', () => {
-    expect(mosaicBlockPx(1, 1500)).toBe(8) // 6/3=2 → clamped
-    expect(mosaicBlockPx(3, 1500)).toBe(8) // 20/3<8 → clamped
-    expect(mosaicBlockPx(3, 3000)).toBeCloseTo((20 * 2) / 3, 5) // 40/3 > 8
+    expect(mosaicBlockPx(1, 1500)).toBe(8) // 10/3<8 → clamped
+    expect(mosaicBlockPx(3, 1500)).toBeCloseTo(32 / 3, 5)
+    expect(mosaicBlockPx(3, 3000)).toBeCloseTo((32 * 2) / 3, 5)
   })
 
   it('resScale clamps', () => {
     expect(resScale(1500)).toBeCloseTo(1)
     expect(resScale(100)).toBeCloseTo(0.7)
     expect(resScale(99999)).toBeCloseTo(3)
+  })
+
+  it('rectRadius follows stroke weight, capped at quarter of short edge', () => {
+    expect(rectRadius(400, 300, 10)).toBe(20) // 2*lw
+    expect(rectRadius(100, 40, 10)).toBe(10) // capped: min/4
+    expect(rectRadius(-400, 300, 10)).toBe(20) // negative extents use abs
   })
 })
 

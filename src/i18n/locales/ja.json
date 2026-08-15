@@ -90,6 +90,7 @@
     "uploadEmoji": "絵文字をアップロード",
     "selectHint": "クリックで選択、ドラッグで移動",
     "deleteSelected": "選択を削除",
+    "textPlaceholder": "テキスト入力後、画像をクリックで配置",
     "tool": {
       "select": "選択",
       "rect": "矩形",

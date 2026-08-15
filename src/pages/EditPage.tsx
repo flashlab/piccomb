@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowUpRight,
+  BrushCleaning,
   Circle,
   Copy,
   Download,
@@ -19,6 +20,7 @@ import { toast } from 'sonner'
 import UploadHero from '@/components/UploadHero'
 import LeaveGuard from '@/components/LeaveGuard'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
@@ -34,8 +36,8 @@ import {
   emojiRange,
   hitTest,
   measureText,
+  mosaicStrokePx,
   strokePx,
-  textPx,
   translated,
   type Pt,
   type Shape,
@@ -55,6 +57,14 @@ import {
 import { useUnloadGuard } from '@/lib/useUnloadGuard'
 import { usePasteImages } from '@/lib/usePasteImages'
 import { cn } from '@/lib/utils'
+
+/** PS-style ring cursor for freehand tools: diameter = current stroke width */
+const circleCursor = (diameter: number): string => {
+  const d = Math.max(10, Math.min(96, Math.round(diameter)))
+  const c = d / 2
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${d}" height="${d}"><circle cx="${c}" cy="${c}" r="${c - 1.5}" fill="none" stroke="white" stroke-width="3"/><circle cx="${c}" cy="${c}" r="${c - 1.5}" fill="none" stroke="black" stroke-width="1.5"/></svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${c} ${c}, crosshair`
+}
 
 const FORMAT_ITEMS = [
   { value: 'jpeg', label: 'JPEG' },
@@ -86,7 +96,9 @@ export default function EditPage() {
   const [fill, setFill] = useState(false)
   const [emojiPx, setEmojiPx] = useState(96)
   const [emojiPanel, setEmojiPanel] = useState(false)
-  const [textDraft, setTextDraft] = useState<{ x: number; y: number; value: string } | null>(null)
+  const [textValue, setTextValue] = useState('')
+  const [hoverShape, setHoverShape] = useState(false)
+  const [dispW, setDispW] = useState(0)
   const [format, setFormat] = useState<ExportFormat>('png')
   const [quality, setQuality] = useState(DEFAULT_QUALITY)
   const [busy, setBusy] = useState(false)
@@ -99,6 +111,7 @@ export default function EditPage() {
   const pendingEmoji = useRef<{ content: string; isImage: boolean }>({ content: '😀', isImage: false })
   const lastBake = useRef(0)
   const emojiFileRef = useRef<HTMLInputElement>(null)
+  const textInputRef = useRef<HTMLInputElement>(null)
   const trash = useRef<Shape[]>([])
   const rafRef = useRef(0)
 
@@ -116,11 +129,30 @@ export default function EditPage() {
     })
     setShapes([])
     setSelectedId(null)
-    setTextDraft(null)
+    setTextValue('')
     setEmojiPx(emojiDefaultPx(loaded.el.naturalWidth))
   }, [])
 
   usePasteImages(onFiles)
+
+  /* track display width so the ring cursor matches the on-screen stroke size */
+  useEffect(() => {
+    const canvas = baseRef.current
+    if (!canvas) return
+    const ro = new ResizeObserver(() => setDispW(canvas.clientWidth))
+    ro.observe(canvas)
+    setDispW(canvas.clientWidth)
+    return () => ro.disconnect()
+  }, [img])
+
+  const cursor = useMemo(() => {
+    if (tool === 'rect' || tool === 'ellipse' || tool === 'arrow') return 'crosshair'
+    if (tool === 'text' || tool === 'emoji') return 'text'
+    const k = natW > 0 ? dispW / natW : 1
+    if (tool === 'brush') return circleCursor(strokePx(level, natW) * k)
+    if (tool === 'mosaic') return circleCursor(mosaicStrokePx(level, natW) * k)
+    return hoverShape ? 'move' : 'default'
+  }, [tool, level, natW, dispW, hoverShape])
 
   /* ---------- painting ---------- */
 
@@ -185,7 +217,6 @@ export default function EditPage() {
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!img || e.button !== 0) return
-    if (textDraft) commitText()
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
     const p = toNatural(e)
 
@@ -196,7 +227,26 @@ export default function EditPage() {
       return
     }
     if (tool === 'text') {
-      setTextDraft({ x: p.x, y: p.y, value: '' })
+      const value = textValue.trim()
+      if (!value) {
+        textInputRef.current?.focus()
+        return
+      }
+      // fixed input holds the content; clicking the image stamps it there
+      const { w, h } = measureText(value, level, natW)
+      const s: Shape = {
+        id: nextId.current++,
+        kind: 'text',
+        color,
+        level,
+        x: p.x,
+        y: p.y,
+        text: value,
+        w,
+        h,
+      }
+      setShapes((prev) => [...prev, s])
+      setSelectedId(s.id)
       return
     }
     if (tool === 'emoji') {
@@ -237,6 +287,11 @@ export default function EditPage() {
       setShapes((prev) => prev.map((s) => (s.id === mv.id ? translated(s, p.x - mv.lastX, p.y - mv.lastY) : s)))
       moveRef.current = { ...mv, lastX: p.x, lastY: p.y }
       scheduleRepaint()
+      return
+    }
+    // hover feedback for the select cursor
+    if (tool === 'select' && !draftRef.current) {
+      setHoverShape(shapes.some((s) => hitTest(s, p.x, p.y, natW)))
       return
     }
     const d = draftRef.current
@@ -288,29 +343,6 @@ export default function EditPage() {
     if (d.kind !== 'mosaic') setSelectedId(committed.id)
   }
 
-  /* ---------- text ---------- */
-
-  const commitText = () => {
-    if (!textDraft) return
-    const value = textDraft.value.trim()
-    setTextDraft(null)
-    if (!value || !img) return
-    const { w, h } = measureText(value, level, natW)
-    const s: Shape = {
-      id: nextId.current++,
-      kind: 'text',
-      color,
-      level,
-      x: textDraft.x,
-      y: textDraft.y,
-      text: value,
-      w,
-      h,
-    }
-    setShapes((prev) => [...prev, s])
-    setSelectedId(s.id)
-  }
-
   /* ---------- toolbar actions ---------- */
 
   const undo = useCallback(() => {
@@ -352,7 +384,6 @@ export default function EditPage() {
         undo()
       } else if (e.key === 'Escape') {
         setSelectedId(null)
-        setTextDraft(null)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -360,6 +391,12 @@ export default function EditPage() {
   }, [selectedId, deleteSelected, undo])
 
   /* ---------- emoji ---------- */
+
+  const pickTool = (id: ToolId) => {
+    setTool(id)
+    setEmojiPanel(id === 'emoji')
+    if (id === 'text') textInputRef.current?.focus()
+  }
 
   const pickEmoji = (content: string, isImage: boolean) => {
     pendingEmoji.current = { content, isImage }
@@ -434,16 +471,11 @@ export default function EditPage() {
         <div className="relative mx-auto w-fit max-w-full select-none">
           <div
             className="relative touch-none overflow-hidden rounded-lg border bg-muted"
+            style={{ cursor }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            onWheel={(e) => {
-              if (selected?.kind !== 'emoji') return
-              e.preventDefault()
-              const next = Math.min(emojiMax, Math.max(emojiMin, selected.px * (e.deltaY < 0 ? 1.08 : 0.92)))
-              resizeSelectedEmoji(Math.round(next))
-            }}
           >
             <canvas ref={baseRef} width={natW} height={natH} className="block max-h-[70vh] w-auto max-w-full" />
             <canvas
@@ -456,62 +488,49 @@ export default function EditPage() {
             {selected && baseRef.current && (
               <SelectionBox shape={selected} natW={natW} canvas={baseRef.current} />
             )}
-            {/* text input overlay */}
-            {textDraft && baseRef.current && (
-              <TextInput
-                draft={textDraft}
-                natW={natW}
-                canvas={baseRef.current}
-                color={color}
-                level={level}
-                onChange={(v) => setTextDraft({ ...textDraft, value: v })}
-                onCommit={commitText}
-                onCancel={() => setTextDraft(null)}
-              />
+          </div>
+        </div>
+      </div>
+
+      {/* tool panel + export sidebar */}
+      <aside className="w-full shrink-0 space-y-4 lg:w-80">
+        {/* toolbar: 3 wrappable groups [select | draw tools | undo/clear] */}
+        <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-card p-1.5">
+          <div className="flex items-center gap-1">
+            {DRAW_TOOLS.slice(0, 1).map(({ id, icon: Icon }) => (
+              <ToolButton key={id} id={id} icon={Icon} tool={tool} onPick={pickTool} />
+            ))}
+          </div>
+          <div className="h-5 w-px bg-border" />
+          <div className="flex items-center gap-1">
+            {DRAW_TOOLS.slice(1).map(({ id, icon: Icon }) => (
+              <ToolButton key={id} id={id} icon={Icon} tool={tool} onPick={pickTool} />
+            ))}
+          </div>
+          <div className="h-5 w-px bg-border" />
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon-sm" aria-label={t('common.undo')} onClick={undo} disabled={shapes.length === 0}>
+              <Undo2 className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.clear')}
+              onClick={clearAll}
+              disabled={shapes.length === 0}
+            >
+              <BrushCleaning className="size-4" />
+            </Button>
+            {selected && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={deleteSelected}>
+                <Trash2 className="size-3.5" /> {t('edit.deleteSelected')}
+              </Button>
             )}
           </div>
         </div>
 
-        {/* toolbar */}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-1 rounded-lg border bg-card p-1.5">
-          {DRAW_TOOLS.map(({ id, icon: Icon }) => (
-            <Button
-              key={id}
-              variant={tool === id ? 'default' : 'ghost'}
-              size="icon-sm"
-              aria-label={t(`edit.tool.${id}`)}
-              aria-pressed={tool === id}
-              onClick={() => {
-                setTool(id)
-                if (id === 'emoji') setEmojiPanel(true)
-                else setEmojiPanel(false)
-              }}
-            >
-              <Icon className="size-4" />
-            </Button>
-          ))}
-          <div className="mx-1 h-5 w-px bg-border" />
-          <Button variant="ghost" size="icon-sm" aria-label={t('common.undo')} onClick={undo} disabled={shapes.length === 0}>
-            <Undo2 className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('common.clear')}
-            onClick={clearAll}
-            disabled={shapes.length === 0}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-          {selected && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={deleteSelected}>
-              <Trash2 className="size-3.5" /> {t('edit.deleteSelected')}
-            </Button>
-          )}
-        </div>
-
         {/* sub toolbar */}
-        <div className="mt-2 flex min-h-9 flex-wrap items-center justify-center gap-3 rounded-lg border bg-card px-3 py-1.5">
+        <div className="flex min-h-9 flex-wrap items-center gap-3 rounded-lg border bg-card px-3 py-1.5">
           {withLevels && (
             <div className="flex items-center gap-1.5" role="radiogroup" aria-label={t('edit.thickness')}>
               {LEVELS.map((l) => (
@@ -555,13 +574,13 @@ export default function EditPage() {
             </div>
           )}
           {(tool === 'rect' || tool === 'ellipse') && (
-            <Toggle pressed={fill} onPressedChange={setFill} size="sm" aria-label={t('edit.fill')}>
+            <Toggle variant="outline" pressed={fill} onPressedChange={setFill} size="sm" aria-label={t('edit.fill')}>
               {t('edit.fill')}
             </Toggle>
           )}
           {tool === 'emoji' && (
-            <div className="flex w-56 items-center gap-2">
-              <Label className="text-xs text-muted-foreground">{t('edit.emojiSize')}</Label>
+            <div className="flex w-full items-center gap-2">
+              <Label className="shrink-0 text-xs text-muted-foreground">{t('edit.emojiSize')}</Label>
               <Slider
                 value={[Math.round(selEmojiPx)]}
                 min={Math.round(emojiMin)}
@@ -580,9 +599,21 @@ export default function EditPage() {
           )}
         </div>
 
+        {/* fixed text input row: type here, then click the image to stamp */}
+        {tool === 'text' && (
+          <Input
+            ref={textInputRef}
+            value={textValue}
+            placeholder={t('edit.textPlaceholder')}
+            autoComplete="off"
+            onChange={(e) => setTextValue(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+          />
+        )}
+
         {/* emoji panel */}
         {emojiPanel && (
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-1 rounded-lg border bg-card p-2">
+          <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-card p-2">
             {BUILT_IN_EMOJI.map((e) => (
               <button
                 key={e}
@@ -610,10 +641,7 @@ export default function EditPage() {
             />
           </div>
         )}
-      </div>
 
-      {/* export sidebar */}
-      <aside className="w-full shrink-0 space-y-4 lg:w-80">
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">{t('export.format')}</Label>
@@ -656,6 +684,31 @@ export default function EditPage() {
 
 /* ---------- overlays ---------- */
 
+function ToolButton({
+  id,
+  icon: Icon,
+  tool,
+  onPick,
+}: {
+  id: ToolId
+  icon: typeof Square
+  tool: ToolId
+  onPick: (id: ToolId) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <Button
+      variant={tool === id ? 'default' : 'ghost'}
+      size="icon-sm"
+      aria-label={t(`edit.tool.${id}`)}
+      aria-pressed={tool === id}
+      onClick={() => onPick(id)}
+    >
+      <Icon className="size-4" />
+    </Button>
+  )
+}
+
 function SelectionBox({ shape, natW, canvas }: { shape: Shape; natW: number; canvas: HTMLCanvasElement }) {
   const rect = canvas.getBoundingClientRect()
   const k = rect.width / natW
@@ -669,50 +722,6 @@ function SelectionBox({ shape, natW, canvas }: { shape: Shape; natW: number; can
         top: bb.y * k,
         width: bb.w * k,
         height: bb.h * k,
-      }}
-    />
-  )
-}
-
-function TextInput({
-  draft,
-  natW,
-  canvas,
-  color,
-  level,
-  onChange,
-  onCommit,
-  onCancel,
-}: {
-  draft: { x: number; y: number; value: string }
-  natW: number
-  canvas: HTMLCanvasElement
-  color: string
-  level: SizeLevel
-  onChange: (v: string) => void
-  onCommit: () => void
-  onCancel: () => void
-}) {
-  const rect = canvas.getBoundingClientRect()
-  const k = rect.width / natW
-  return (
-    <input
-      autoFocus
-      value={draft.value}
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={onCommit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') onCommit()
-        else if (e.key === 'Escape') onCancel()
-        e.stopPropagation()
-      }}
-      className="absolute z-10 rounded border border-primary bg-background/90 px-1 font-semibold outline-none"
-      style={{
-        left: draft.x * k,
-        top: draft.y * k,
-        fontSize: textPx(level, natW) * k,
-        color,
-        minWidth: 120,
       }}
     />
   )

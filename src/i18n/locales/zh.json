@@ -90,6 +90,7 @@
     "uploadEmoji": "上传表情",
     "selectHint": "点击选择图形，拖动移动",
     "deleteSelected": "删除选中",
+    "textPlaceholder": "输入文字后点击图片放置",
     "tool": {
       "select": "选择",
       "rect": "矩形",

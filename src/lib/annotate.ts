@@ -86,18 +86,24 @@ export const BUILT_IN_EMOJI = [
 ] as const
 
 const STROKE_BASE: Record<SizeLevel, number> = { 1: 6, 2: 12, 3: 20 }
+const MOSAIC_BASE: Record<SizeLevel, number> = { 1: 10, 2: 20, 3: 32 }
 const TEXT_BASE: Record<SizeLevel, number> = { 1: 28, 2: 48, 3: 80 }
 
 /** stroke/font px scale with image resolution so levels feel equal across sizes */
 export const resScale = (natW: number): number => clamp(natW / 1500, 0.7, 3)
 export const strokePx = (level: SizeLevel, natW: number): number => STROKE_BASE[level] * resScale(natW)
+export const mosaicStrokePx = (level: SizeLevel, natW: number): number => MOSAIC_BASE[level] * resScale(natW)
 export const textPx = (level: SizeLevel, natW: number): number => TEXT_BASE[level] * resScale(natW)
 export const emojiDefaultPx = (natW: number): number => 96 * resScale(natW)
-export const emojiRange = (natW: number): [number, number] => [24 * resScale(natW), 288 * resScale(natW)]
+export const emojiRange = (natW: number): [number, number] => [24 * resScale(natW), 384 * resScale(natW)]
 
 /** mosaic pixel block: tied to stroke width, never below 8 natural px */
 export const mosaicBlockPx = (level: SizeLevel, natW: number): number =>
-  Math.max(8, strokePx(level, natW) / 3)
+  Math.max(8, mosaicStrokePx(level, natW) / 3)
+
+/** rounded-rect corner radius: follows stroke weight, capped at a quarter of the short edge */
+export const rectRadius = (w: number, h: number, lw: number): number =>
+  clamp(2 * lw, 0, Math.min(Math.abs(w), Math.abs(h)) / 4)
 
 /* ================= pure geometry (unit-tested) ================= */
 
@@ -215,7 +221,10 @@ export function bboxOf(shape: Shape, natW: number): { x: number; y: number; w: n
     }
     case 'brush':
     case 'mosaic':
-      return strokeBBox(shape.points, strokePx(shape.level, natW) / 2)
+      return strokeBBox(
+        shape.points,
+        (shape.kind === 'mosaic' ? mosaicStrokePx(shape.level, natW) : strokePx(shape.level, natW)) / 2,
+      )
     case 'text':
       return { x: shape.x, y: shape.y, w: shape.w, h: shape.h }
     case 'emoji':
@@ -233,11 +242,15 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape, natW: number)
   ctx.lineJoin = 'round'
   const lw = strokePx(s.level, natW)
   switch (s.kind) {
-    case 'rect':
+    case 'rect': {
       ctx.lineWidth = lw
-      if (s.fill) ctx.fillRect(s.x, s.y, s.w, s.h)
-      else ctx.strokeRect(s.x, s.y, s.w, s.h)
+      const r = rectRadius(s.w, s.h, lw)
+      ctx.beginPath()
+      ctx.roundRect(s.x, s.y, s.w, s.h, r)
+      if (s.fill) ctx.fill()
+      else ctx.stroke()
       break
+    }
     case 'ellipse':
       ctx.lineWidth = lw
       ctx.beginPath()
@@ -299,7 +312,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, s: Shape, natW: number)
  * stroke itself so only the drawn path gets pixelated.
  */
 export function bakeMosaicPatch(img: CanvasImageSource, natW: number, natH: number, s: StrokeShape): void {
-  const halfW = strokePx(s.level, natW) / 2
+  const halfW = mosaicStrokePx(s.level, natW) / 2
   const bb = strokeBBox(s.points, halfW)
   const x = Math.max(0, Math.floor(bb.x))
   const y = Math.max(0, Math.floor(bb.y))
