@@ -48,10 +48,10 @@ export default function Layout() {
         {t('common.skipToContent')}
       </a>
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
-          <NavLink to="/collage" className="flex items-baseline gap-2">
+        <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1.5">
+          <NavLink to="/collage" className="flex items-baseline gap-2 whitespace-nowrap">
             <span className="text-lg font-bold tracking-tight">{t('common.brand')}</span>
-            <span className="hidden text-xs text-muted-foreground sm:inline">
+            <span className="hidden whitespace-nowrap text-xs text-muted-foreground sm:inline">
               {t('common.tagline')}
             </span>
           </NavLink>
@@ -64,7 +64,7 @@ export default function Layout() {
                 aria-label={item.label}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors sm:px-3',
+                    'flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium transition-colors sm:px-3',
                     isActive
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
@@ -72,16 +72,12 @@ export default function Layout() {
                 }
               >
                 <item.icon className="size-4" />
-                <span className="hidden sm:inline">{item.label}</span>
+                <span className="hidden whitespace-nowrap sm:inline">{item.label}</span>
               </NavLink>
             ))}
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
-            <span className="mr-1 hidden items-center gap-1 text-xs text-muted-foreground md:flex">
-              <ShieldCheck className="size-3.5" />
-              {t('common.local')}
-            </span>
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={<Button variant="ghost" size="icon" aria-label={t('common.language')} />}
@@ -118,25 +114,31 @@ export default function Layout() {
       </main>
 
       <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-        🌱 Built by{' '}
-        <a
-          href="https://github.com/flashlab"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-foreground"
-        >
-          ZZBD
-        </a>
-        . Source at{' '}
-        <a
-          href="https://github.com/flashlab/piccomb"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-foreground"
-        >
-          GitHub
-        </a>
-        . <span className="tabular-nums text-muted-foreground/70">v{__APP_VERSION__}</span>
+        <p>
+          🌱 Built by{' '}
+          <a
+            href="https://github.com/flashlab"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            ZZBD
+          </a>
+          . Source at{' '}
+          <a
+            href="https://github.com/flashlab/piccomb"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            GitHub
+          </a>
+          . <span className="tabular-nums text-muted-foreground/70">v{__APP_VERSION__}</span>
+        </p>
+        <p className="mt-1.5 flex items-center justify-center gap-1 text-muted-foreground/80">
+          <ShieldCheck className="size-3.5" />
+          {t('common.local')}
+        </p>
       </footer>
 
       <Toaster />

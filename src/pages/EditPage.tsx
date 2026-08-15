@@ -85,6 +85,42 @@ const DRAW_TOOLS: { id: ToolId; icon: typeof Square }[] = [
 
 const LEVELS: SizeLevel[] = [1, 2, 3]
 
+const EMOJI_LS_KEY = 'piccomb.customEmoji'
+const EMOJI_LS_MAX = 24
+
+const loadCustomEmojis = (): string[] => {
+  try {
+    const v = JSON.parse(localStorage.getItem(EMOJI_LS_KEY) ?? '[]')
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+/** 128×128 transparent PNG dataURL, contain-fit — small enough for localStorage */
+const toEmojiDataURL = (img: LoadedImage): string => {
+  const c = document.createElement('canvas')
+  c.width = 128
+  c.height = 128
+  const ctx = c.getContext('2d')!
+  const scale = Math.min(128 / img.w, 128 / img.h)
+  const w = img.w * scale
+  const h = img.h * scale
+  ctx.drawImage(img.el, (128 - w) / 2, (128 - h) / 2, w, h)
+  return c.toDataURL('image/png')
+}
+
+/** decode-and-cache a dataURL emoji, then repaint so placed copies appear */
+function ensureEmojiCached(url: string, after: () => void) {
+  if (emojiImageCache.has(url)) return
+  const el = new Image()
+  el.onload = () => {
+    emojiImageCache.set(url, el)
+    after()
+  }
+  el.src = url
+}
+
 export default function EditPage() {
   const { t } = useTranslation()
   const [img, setImg] = useState<LoadedImage | null>(null)
@@ -96,6 +132,7 @@ export default function EditPage() {
   const [fill, setFill] = useState(false)
   const [emojiPx, setEmojiPx] = useState(96)
   const [emojiPanel, setEmojiPanel] = useState(false)
+  const [customEmojis, setCustomEmojis] = useState<string[]>(loadCustomEmojis)
   const [textValue, setTextValue] = useState('')
   const [hoverShape, setHoverShape] = useState(false)
   const [dispW, setDispW] = useState(0)
@@ -393,22 +430,44 @@ export default function EditPage() {
   /* ---------- emoji ---------- */
 
   const pickTool = (id: ToolId) => {
+    // clicking the active emoji tool toggles its panel; anything else switches
+    setEmojiPanel(id === 'emoji' ? (tool === 'emoji' ? !emojiPanel : true) : false)
     setTool(id)
-    setEmojiPanel(id === 'emoji')
     if (id === 'text') textInputRef.current?.focus()
   }
 
   const pickEmoji = (content: string, isImage: boolean) => {
+    // panel stays open: stamping several emojis in a row is the common case
+    if (isImage) ensureEmojiCached(content, scheduleRepaint)
     pendingEmoji.current = { content, isImage }
     setTool('emoji')
-    setEmojiPanel(false)
   }
 
   const onEmojiFile = async (files: File[]) => {
     if (files.length === 0) return
     const loaded = await loadImageFile(files[0])
-    emojiImageCache.set(loaded.url, loaded.el)
-    pickEmoji(loaded.url, true)
+    const dataURL = toEmojiDataURL(loaded)
+    releaseImage(loaded)
+    setCustomEmojis((prev) => {
+      const next = [...prev.filter((d) => d !== dataURL), dataURL].slice(-EMOJI_LS_MAX)
+      try {
+        localStorage.setItem(EMOJI_LS_KEY, JSON.stringify(next))
+      } catch {
+        /* storage full — keep in-session only */
+      }
+      return next
+    })
+    emojiImageCache.set(dataURL, loaded.el as HTMLImageElement)
+    pickEmoji(dataURL, true)
+  }
+
+  const removeCustomEmoji = (d: string) => {
+    setCustomEmojis((prev) => {
+      const next = prev.filter((x) => x !== d)
+      localStorage.setItem(EMOJI_LS_KEY, JSON.stringify(next))
+      return next
+    })
+    emojiImageCache.delete(d)
   }
 
   const selected = shapes.find((s) => s.id === selectedId) ?? null
@@ -624,6 +683,25 @@ export default function EditPage() {
                 {e}
               </button>
             ))}
+            {customEmojis.map((d) => (
+              <span key={d.slice(-16)} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => pickEmoji(d, true)}
+                  className="flex size-9 items-center justify-center rounded-md hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <img src={d} alt="" className="size-7 object-contain" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={t('edit.deleteEmoji')}
+                  onClick={() => removeCustomEmoji(d)}
+                  className="absolute -right-1 -top-1 hidden size-4 items-center justify-center rounded-full bg-destructive text-[10px] leading-none text-white group-hover:flex"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
             <button
               type="button"
               aria-label={t('edit.uploadEmoji')}
@@ -666,6 +744,7 @@ export default function EditPage() {
               max={100}
               step={1}
               aria-label={t('export.quality')}
+              className="flex h-9 items-center"
               onValueChange={(v) => setQuality((typeof v === 'number' ? v : (v[0] ?? 92)) / 100)}
             />
           </div>

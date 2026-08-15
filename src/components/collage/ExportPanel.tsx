@@ -135,7 +135,7 @@ export default function ExportPanel({ settings, onChange, onExport, exporting, e
               step={0.01}
               aria-label={t('export.quality')}
               onValueChange={(v) => set({ quality: typeof v === 'number' ? v : (v[0] ?? settings.quality) })}
-              className="mt-3"
+              className="flex h-9 items-center"
             />
           </div>
         )}

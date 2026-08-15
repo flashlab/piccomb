@@ -91,6 +91,7 @@
     "selectHint": "Click to select, drag to move",
     "deleteSelected": "Delete selected",
     "textPlaceholder": "Type here, then click the image to place",
+    "deleteEmoji": "Remove emoji",
     "tool": {
       "select": "Select",
       "rect": "Rectangle",

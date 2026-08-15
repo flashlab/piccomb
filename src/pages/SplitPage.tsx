@@ -248,7 +248,7 @@ export default function SplitPage() {
                 max={1}
                 step={0.01}
                 onValueChange={(v) => setQuality(typeof v === 'number' ? v : (v[0] ?? quality))}
-                className="mt-3"
+                className="flex h-9 items-center"
               />
             </div>
           )}
