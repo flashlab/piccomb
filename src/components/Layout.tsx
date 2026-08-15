@@ -117,7 +117,7 @@ export default function Layout() {
         <p>
           🌱 Built by{' '}
           <a
-            href="https://github.com/flashlab"
+            href="https://linux.do/u/zzbd/summary"
             target="_blank"
             rel="noreferrer"
             className="underline underline-offset-2 hover:text-foreground"

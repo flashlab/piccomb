@@ -1,38 +1,44 @@
 # PicComb
 
-免费在线拼图工具 —— 布局拼图 · 图片分割 · 图片裁剪 · 图片编辑（微信截图风标注）。纯浏览器本地处理，无水印免登录。
+[English](README.md) | [中文](README.zh-CN.md)
 
-![PicComb 截图](docs/screenshot.jpg)
+Free online collage maker — layout collage · image split · image crop · image editor (WeChat-style annotations). All processing happens locally in your browser. No watermark, no sign-up.
 
-**Stack**: Vite + React + TypeScript + shadcn/ui (Base UI) + Tailwind CSS v4 · react-i18next (中/日/英) · PWA
+![PicComb screenshot](docs/screenshot.jpg)
 
-## 开发
+**Stack**: Vite + React + TypeScript + shadcn/ui (Base UI) + Tailwind CSS v4 · react-i18next (中文/日本語/English) · PWA
+
+## Development
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run test       # vitest 纯逻辑测试
-npm run build      # 产物到 dist/
+npm run test       # vitest, pure-logic suites
+npm run build      # outputs to dist/
 ```
 
-## 部署
+## Deployment
 
-托管在 **Cloudflare Pages**（连接 GitHub 仓库自动构建）：
+Hosted on **Cloudflare Pages** (Git-connected, auto-builds on push):
 
 - Build command: `npm run build`
 - Build output: `dist`
-- SPA fallback 由 `public/_redirects` 提供（`/* /index.html 200`）
-- 自定义域名 `picomb.openwebui.de` 在 Pages 项目里添加（openwebui.de DNS 在 Cloudflare，自动接管）
+- SPA fallback via `public/_redirects` (`/* /index.html 200`)
+- Custom domain `picomb.openwebui.de` is attached in the Pages project (DNS already on Cloudflare)
 
-## 图标
+## Icons
 
-`node scripts/gen-icons.mjs` 重新生成 `public/icons/`（零依赖纯 Node，改配色改脚本顶部常量）。
+`node scripts/gen-icons.mjs` regenerates `public/icons/` (zero-dependency plain Node; edit the constants at the top of the script to recolor).
 
-## 架构要点
+## Architecture notes
 
-- `src/data/templates.json` — 135 个布局模板（1~16 张图），格式 `{g, gr:[rows,cols], c:[{r,c,s?}]}`；`s` 为可选 1-indexed 钉位
-- `src/lib/templates.ts` — 模板放置（两遍法：先钉位后首个空位）、智能匹配、分割线拖拽数学
-- `src/lib/geometry.ts` — cover-fit / 平移缩放 / 源图矩形换算（编辑态与导出态共用同一套数学）
-- `src/lib/export.ts` — Canvas 导出管线（拼图渲染、分割、带旋转裁剪、格式/质量/文件名）
-- `src/lib/annotate.ts` — 图片编辑模块的标注对象模型：矩形/椭圆/箭头/画笔/马赛克/文字/表情的渲染、命中测试、马赛克 patch 烘焙
-- 编辑态 DOM（grid span + overflow hidden + CSS transform），导出态离屏 Canvas 2D 任意分辨率重绘；编辑模块为对象模型 + 双 Canvas（已提交层 + 绘制中草稿层）
+- `src/data/templates.json` — 135 layout templates (1–16 images), format `{g, gr:[rows,cols], c:[{r,c,s?}]}`; `s` is an optional 1-indexed pinned cell
+- `src/lib/templates.ts` — template placement (two-pass: pinned first, then first-fit), smart matching, divider-drag math
+- `src/lib/geometry.ts` — cover-fit / pan-zoom / source-rect math shared by the edit view and the exporter
+- `src/lib/export.ts` — canvas export pipeline (collage render, split, rotated crop, format/quality/filename)
+- `src/lib/annotate.ts` — annotation object model for the editor: rect/ellipse/arrow/brush/mosaic/text/emoji rendering, hit-testing, mosaic patch baking
+- Edit view is DOM (grid span + overflow hidden + CSS transform); export re-renders on an offscreen 2D canvas at any resolution. The editor module uses an object model + dual canvas (committed layer + live draft layer)
+
+## Contributors
+
+- [zzbd - LINUX DO](https://linux.do/u/zzbd/summary)
