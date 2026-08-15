@@ -1,6 +1,8 @@
 # PicComb
 
-免费在线拼图工具 —— 布局拼图 · 图片分割 · 图片裁剪。纯浏览器本地处理，无水印免登录。
+免费在线拼图工具 —— 布局拼图 · 图片分割 · 图片裁剪 · 图片编辑（微信截图风标注）。纯浏览器本地处理，无水印免登录。
+
+![PicComb 截图](docs/screenshot.jpg)
 
 **Stack**: Vite + React + TypeScript + shadcn/ui (Base UI) + Tailwind CSS v4 · react-i18next (中/日/英) · PWA
 
@@ -20,7 +22,7 @@ npm run build      # 产物到 dist/
 - Build command: `npm run build`
 - Build output: `dist`
 - SPA fallback 由 `public/_redirects` 提供（`/* /index.html 200`）
-- 自定义域名 `picomb.fuclau.de` 在 Pages 项目里添加即可（fuclau.de DNS 就在 Cloudflare，自动接管）
+- 自定义域名 `picomb.openwebui.de` 在 Pages 项目里添加（openwebui.de DNS 在 Cloudflare，自动接管）
 
 ## 图标
 
@@ -32,4 +34,5 @@ npm run build      # 产物到 dist/
 - `src/lib/templates.ts` — 模板放置（两遍法：先钉位后首个空位）、智能匹配、分割线拖拽数学
 - `src/lib/geometry.ts` — cover-fit / 平移缩放 / 源图矩形换算（编辑态与导出态共用同一套数学）
 - `src/lib/export.ts` — Canvas 导出管线（拼图渲染、分割、带旋转裁剪、格式/质量/文件名）
-- 编辑态 DOM（grid span + overflow hidden + CSS transform），导出态离屏 Canvas 2D 任意分辨率重绘
+- `src/lib/annotate.ts` — 图片编辑模块的标注对象模型：矩形/椭圆/箭头/画笔/马赛克/文字/表情的渲染、命中测试、马赛克 patch 烘焙
+- 编辑态 DOM（grid span + overflow hidden + CSS transform），导出态离屏 Canvas 2D 任意分辨率重绘；编辑模块为对象模型 + 双 Canvas（已提交层 + 绘制中草稿层）

@@ -524,7 +524,7 @@ export default function EditPage() {
   return (
     <div className="flex flex-col gap-4 lg:flex-row">
       <h1 className="sr-only">{t('edit.title')}</h1>
-      <LeaveGuard active={shapes.length > 0} />
+      <LeaveGuard active={img !== null} />
       <div className="min-w-0 flex-1">
         {/* canvas stack */}
         <div className="relative mx-auto w-fit max-w-full select-none">
