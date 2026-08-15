@@ -549,10 +549,14 @@ export default function EditPage() {
             )}
           </div>
         </div>
+        <p className="mt-3 text-center text-xs tabular-nums text-muted-foreground">
+          {t('common.sourceSize')} · {natW}×{natH}px
+        </p>
       </div>
 
       {/* tool panel + export sidebar */}
       <aside className="w-full shrink-0 space-y-4 lg:w-80">
+        <h2 className="text-sm font-semibold">{t('edit.panelTitle')}</h2>
         {/* toolbar: 3 wrappable groups [select | draw tools | undo/clear] */}
         <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-card p-1.5">
           <div className="flex items-center gap-1">
@@ -568,21 +572,35 @@ export default function EditPage() {
           </div>
           <div className="h-5 w-px bg-border" />
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon-sm" aria-label={t('common.undo')} onClick={undo} disabled={shapes.length === 0}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.undo')}
+              title={t('common.undo')}
+              onClick={undo}
+              disabled={shapes.length === 0}
+            >
               <Undo2 className="size-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label={t('common.clear')}
+              title={t('common.clear')}
               onClick={clearAll}
               disabled={shapes.length === 0}
             >
               <BrushCleaning className="size-4" />
             </Button>
             {selected && (
-              <Button variant="ghost" size="sm" className="text-xs" onClick={deleteSelected}>
-                <Trash2 className="size-3.5" /> {t('edit.deleteSelected')}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('edit.deleteSelected')}
+                title={t('edit.deleteSelected')}
+                onClick={deleteSelected}
+              >
+                <Trash2 className="size-4" />
               </Button>
             )}
           </div>
@@ -755,7 +773,6 @@ export default function EditPage() {
         <Button variant="outline" className="w-full" onClick={() => void doExport(true)} disabled={busy}>
           <Copy className="size-4" /> {t('collage.copyClipboard')}
         </Button>
-        <p className="text-xs text-muted-foreground">{t('edit.hint')}</p>
       </aside>
     </div>
   )
@@ -775,11 +792,13 @@ function ToolButton({
   onPick: (id: ToolId) => void
 }) {
   const { t } = useTranslation()
+  const label = t(`edit.tool.${id}`)
   return (
     <Button
       variant={tool === id ? 'default' : 'ghost'}
       size="icon-sm"
-      aria-label={t(`edit.tool.${id}`)}
+      aria-label={label}
+      title={label}
       aria-pressed={tool === id}
       onClick={() => onPick(id)}
     >

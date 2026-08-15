@@ -162,7 +162,8 @@ export default function SplitPage() {
           </div>
         </div>
         <p className="mt-3 text-xs tabular-nums text-muted-foreground">
-          {t('split.tileSize')} · {Math.floor(img.w / cols)}×{Math.floor(img.h / rows)}px
+          {t('split.tileSize')} · {Math.floor(img.w / cols)}×{Math.floor(img.h / rows)}px ·{' '}
+          {t('common.sourceSize')} · {img.w}×{img.h}px
         </p>
       </div>
 
@@ -257,21 +258,6 @@ export default function SplitPage() {
         <Button className="w-full" size="lg" onClick={() => void downloadZip()} disabled={busy}>
           <Download className="size-4" /> {t('common.downloadAll')}
         </Button>
-        <Button
-          variant="outline"
-          className="w-full border-primary/60 text-primary hover:bg-primary/10"
-          size="lg"
-          disabled={busy || selected.size === 0}
-          onClick={() =>
-            void eachTile((r, c, canvas) => {
-              if (selected.has(`${r}-${c}`)) return downloadOne(r, c, canvas)
-            })
-          }
-        >
-          <Download className="size-4" />
-          {t('split.downloadSelected')}
-          {selected.size > 0 ? ` (${selected.size})` : ''}
-        </Button>
 
         <Separator />
         <div
@@ -297,9 +283,21 @@ export default function SplitPage() {
           })}
         </div>
 
-        <p className="pt-2 text-right text-xs tabular-nums text-muted-foreground">
-          {t('split.sourceSize')} · {img.w}×{img.h}px
-        </p>
+        <Button
+          variant="outline"
+          className="w-full border-primary/60 text-primary hover:bg-primary/10"
+          size="lg"
+          disabled={busy || selected.size === 0}
+          onClick={() =>
+            void eachTile((r, c, canvas) => {
+              if (selected.has(`${r}-${c}`)) return downloadOne(r, c, canvas)
+            })
+          }
+        >
+          <Download className="size-4" />
+          {t('split.downloadSelected')}
+          {selected.size > 0 ? ` (${selected.size})` : ''}
+        </Button>
       </aside>
     </div>
   )

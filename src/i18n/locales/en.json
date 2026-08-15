@@ -19,7 +19,8 @@
     "leaveTitle": "Leave this tool?",
     "leaveDesc": "Loaded images will be discarded.",
     "stay": "Stay",
-    "leave": "Leave"
+    "leave": "Leave",
+    "sourceSize": "Source"
   },
   "collage": {
     "title": "Layout Collage",
@@ -58,7 +59,6 @@
     "tiles": "{{count}} tiles",
     "hint": "Split into rows × columns; download tiles individually or as a ZIP",
     "tileSize": "Tile size",
-    "sourceSize": "Source",
     "downloadSelected": "Download selected"
   },
   "crop": {
@@ -83,12 +83,12 @@
   },
   "edit": {
     "title": "Edit Image",
-    "hint": "Select tool moves shapes, Delete removes the selection, Ctrl+Z undoes",
+    "panelTitle": "Edit tools",
     "thickness": "Thickness",
     "fill": "Fill",
     "emojiSize": "Emoji size",
     "uploadEmoji": "Upload emoji",
-    "selectHint": "Click to select, drag to move",
+    "selectHint": "Click to select, drag to move, Delete removes, Ctrl+Z undoes",
     "deleteSelected": "Delete selected",
     "textPlaceholder": "Type here, then click the image to place",
     "deleteEmoji": "Remove emoji",

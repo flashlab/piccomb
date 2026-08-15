@@ -292,8 +292,8 @@ export default function CropPage() {
           )}
         </div>
         <p className="mt-3 text-xs tabular-nums text-muted-foreground">
-          {areaPixels
-            ? `[${Math.round(areaPixels.x)}, ${Math.round(areaPixels.y)}] · ${Math.round(areaPixels.width)}×${Math.round(areaPixels.height)}px · ${rotation.toFixed(1)}°`
+          {areaPixels && working
+            ? `[${Math.round(areaPixels.x)}, ${Math.round(areaPixels.y)}] · ${Math.round(areaPixels.width)}×${Math.round(areaPixels.height)}px · ${rotation.toFixed(1)}° · ${t('common.sourceSize')} ${working.w}×${working.h}px`
             : t('crop.title')}
         </p>
       </div>
@@ -531,11 +531,6 @@ export default function CropPage() {
         >
           <Copy className="size-4" /> {t('collage.copyClipboard')}
         </Button>
-        {areaPixels && (
-          <p className="text-center text-xs text-muted-foreground">
-            {Math.round(areaPixels.width)}×{Math.round(areaPixels.height)}px
-          </p>
-        )}
       </aside>
     </div>
   )

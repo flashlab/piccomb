@@ -19,7 +19,8 @@
     "leaveTitle": "离开当前工具？",
     "leaveDesc": "当前加载的图片将被丢弃。",
     "stay": "留下",
-    "leave": "离开"
+    "leave": "离开",
+    "sourceSize": "原图"
   },
   "collage": {
     "title": "布局拼图",
@@ -58,7 +59,6 @@
     "tiles": "{{count}} 个分块",
     "hint": "按行×列等分图片，可单块下载或打包 ZIP",
     "tileSize": "单块尺寸",
-    "sourceSize": "原图",
     "downloadSelected": "部分下载"
   },
   "crop": {
@@ -83,12 +83,12 @@
   },
   "edit": {
     "title": "图片编辑",
-    "hint": "选择工具可移动图形，Delete 删除选中，Ctrl+Z 撤销",
+    "panelTitle": "编辑工具",
     "thickness": "粗细",
     "fill": "填充",
     "emojiSize": "表情大小",
     "uploadEmoji": "上传表情",
-    "selectHint": "点击选择图形，拖动移动",
+    "selectHint": "点击选择图形，拖动移动，Delete 删除选中，Ctrl+Z 撤销",
     "deleteSelected": "删除选中",
     "textPlaceholder": "输入文字后点击图片放置",
     "deleteEmoji": "删除表情",

@@ -19,7 +19,8 @@
     "leaveTitle": "このツールを離れますか？",
     "leaveDesc": "読み込んだ画像は破棄されます。",
     "stay": "とどまる",
-    "leave": "離れる"
+    "leave": "離れる",
+    "sourceSize": "元画像"
   },
   "collage": {
     "title": "レイアウトコラージュ",
@@ -58,7 +59,6 @@
     "tiles": "{{count}} ブロック",
     "hint": "行×列で等分割し、個別またはZIPでダウンロード",
     "tileSize": "ブロックサイズ",
-    "sourceSize": "元画像",
     "downloadSelected": "選択分をDL"
   },
   "crop": {
@@ -83,12 +83,12 @@
   },
   "edit": {
     "title": "画像編集",
-    "hint": "選択ツールで図形を移動、Deleteで削除、Ctrl+Zで元に戻す",
+    "panelTitle": "編集ツール",
     "thickness": "太さ",
     "fill": "塗りつぶし",
     "emojiSize": "絵文字サイズ",
     "uploadEmoji": "絵文字をアップロード",
-    "selectHint": "クリックで選択、ドラッグで移動",
+    "selectHint": "クリックで選択、ドラッグで移動、Deleteで削除、Ctrl+Zで元に戻す",
     "deleteSelected": "選択を削除",
     "textPlaceholder": "テキスト入力後、画像をクリックで配置",
     "deleteEmoji": "絵文字を削除",
