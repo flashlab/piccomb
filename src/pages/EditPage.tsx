@@ -549,14 +549,11 @@ export default function EditPage() {
             )}
           </div>
         </div>
-        <p className="mt-3 text-center text-xs tabular-nums text-muted-foreground">
-          {t('common.sourceSize')} · {natW}×{natH}px
-        </p>
       </div>
 
       {/* tool panel + export sidebar */}
       <aside className="w-full shrink-0 space-y-4 lg:w-80">
-        <h2 className="text-sm font-semibold">{t('edit.panelTitle')}</h2>
+        <h2 className="hidden text-sm font-semibold lg:block">{t('edit.panelTitle')}</h2>
         {/* toolbar: 3 wrappable groups [select | draw tools | undo/clear] */}
         <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-card p-1.5">
           <div className="flex items-center gap-1">
@@ -773,6 +770,9 @@ export default function EditPage() {
         <Button variant="outline" className="w-full" onClick={() => void doExport(true)} disabled={busy}>
           <Copy className="size-4" /> {t('collage.copyClipboard')}
         </Button>
+        <p className="text-xs tabular-nums text-muted-foreground">
+          {t('common.sourceSize')} · {natW}×{natH}px
+        </p>
       </aside>
     </div>
   )

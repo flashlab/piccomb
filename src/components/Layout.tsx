@@ -48,10 +48,10 @@ export default function Layout() {
         {t('common.skipToContent')}
       </a>
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1.5">
-          <NavLink to="/collage" className="flex flex-col items-start whitespace-nowrap sm:flex-row sm:items-baseline sm:gap-2">
+        <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
+          <NavLink to="/collage" className="flex flex-wrap items-baseline gap-x-2 whitespace-nowrap">
             <span className="text-lg font-bold leading-tight tracking-tight">{t('common.brand')}</span>
-            <span className="whitespace-nowrap text-xs leading-tight text-muted-foreground">
+            <span className="hidden whitespace-nowrap text-xs leading-tight text-muted-foreground sm:inline">
               {t('common.tagline')}
             </span>
           </NavLink>
@@ -64,7 +64,7 @@ export default function Layout() {
                 aria-label={item.label}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-1 text-[10px] font-medium leading-tight transition-colors sm:flex-row sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-sm',
+                    'flex flex-wrap items-center justify-center gap-x-1.5 whitespace-nowrap rounded-md px-2 py-1 text-sm font-medium leading-tight transition-colors sm:px-3',
                     isActive
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
@@ -72,7 +72,7 @@ export default function Layout() {
                 }
               >
                 <item.icon className="size-4" />
-                <span className="whitespace-nowrap">{item.label}</span>
+                <span className="hidden whitespace-nowrap sm:inline">{item.label}</span>
               </NavLink>
             ))}
           </nav>
